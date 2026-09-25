@@ -155,7 +155,7 @@ Test coverage: structure detection, steward checks and the failing gate, leakage
 
 ## 12. Scalability and feasibility
 
-- **Data**: feature computation is vectorised per unit; training scales with rows x features x trials and the trial budget is a parameter. The same code path has been run on 20,631 x 86 (C-MAPSS) and 8,000 x 12 (AI4I).
+- **Data**: feature computation is vectorised per unit; training scales with rows x features x trials and the trial budget is a parameter. The same code path has been run on C-MAPSS (20,631 rows, 86 features) and AI4I (8,000 training rows).
 - **Storage**: PostgreSQL for runs, decisions and predictions; MLflow server with a proxied artifact store for models. Both are standard, horizontally deployable services.
 - **Serving**: each model version is an independent stateless container with one small dependency set, so it can be replicated behind any load balancer and rolled back by tag.
 - **Adoption**: nothing leaves the machine. There are no external API calls at run time, which matters for plant networks. The decision ledger and run hash give reviewers something concrete to sign off.
