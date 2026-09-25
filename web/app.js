@@ -406,7 +406,7 @@ curl -X POST localhost:8080/predict \\
       ? `<p class="sub">Builds the image, starts the container, calls <code>/health</code> and <code>/predict</code>, and checks the container's scores against the trained model.</p>
         <div class="row"><button class="btn" id="dk" ${S.busy ? "disabled" : ""}>${S.busy ? "Building image..." : "Build and test container"}</button></div>`
       : `<p class="sub">Recorded result from the Docker stack:</p>`}
-      ${dk ? (dk.ran ? `<div class="note"><span class="pill ${dk.ok ? "pass" : "fail"}">${dk.ok ? "container matches model" : "mismatch"}</span> &nbsp; image <code>${esc(dk.image)}</code>, ${dk.image_mb} MB, ${dk.build_seconds < 5 ? "layers cached" : "built in " + dk.build_seconds + " s"}, max |diff| ${sci(dk.max_abs_diff)}</div>`
+      ${dk ? (dk.ran ? `<div class="note"><span class="pill ${dk.ok ? "pass" : "fail"}">${dk.ok ? "container matches model" : "mismatch"}</span> &nbsp; image <code>${esc(dk.image)}</code>, ${dk.build_seconds < 5 ? "layers cached" : "built in " + dk.build_seconds + " s"}, max |diff| ${sci(dk.max_abs_diff)}</div>`
         : `<div class="note">Docker is not reachable from this server (${esc(dk.reason)}). The in-process parity test above still passed.</div>`) : ""}
     </div>`;
   $("#dk", v) && ($("#dk", v).onclick = async () => {
