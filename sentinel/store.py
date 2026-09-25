@@ -1,7 +1,8 @@
 """Persistence: runs, the decision log, and the prediction log.
 
 PostgreSQL when DATABASE_URL points at it (docker compose), SQLite otherwise
-(local dev, tests, the hosted demo). Same schema, same code path.
+(local dev, tests, the hosted demo). Same schema, same code path. Table names carry a
+`sentinel_` prefix because the MLflow server shares the Postgres database and owns a `runs` table.
 """
 from __future__ import annotations
 
@@ -15,15 +16,15 @@ from . import config
 from .util import clean
 
 meta = MetaData()
-runs = Table("runs", meta,
+runs = Table("sentinel_runs", meta,
              Column("id", String(40), primary_key=True), Column("dataset", String(80)),
              Column("status", String(20)), Column("run_hash", String(64)), Column("created", Float),
              Column("summary", Text))
-decisions = Table("decisions", meta,
+decisions = Table("sentinel_decisions", meta,
                   Column("id", Integer, primary_key=True, autoincrement=True), Column("run_id", String(40)),
                   Column("seq", Integer), Column("node", String(40)), Column("rule", String(60)),
                   Column("detail", Text))
-predictions = Table("predictions", meta,
+predictions = Table("sentinel_predictions", meta,
                     Column("id", Integer, primary_key=True, autoincrement=True), Column("run_id", String(40)),
                     Column("model_version", String(20)), Column("entity", String(60)), Column("risk", Float),
                     Column("level", String(10)), Column("created", Float))
