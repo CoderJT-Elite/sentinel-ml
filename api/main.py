@@ -164,7 +164,7 @@ def _job(run_id: str) -> Job:
 def get_run(run_id: str):
     j = _job(run_id)
     if j.status == "done" or j.status == "halted":
-        return {"status": j.status, "result": j.result}
+        return {"status": j.status, "result": clean(j.result)}
     return {"status": j.status, "error": j.error, "events": len(j.events)}
 
 
