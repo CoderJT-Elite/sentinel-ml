@@ -236,7 +236,7 @@ async function replay() {
   }
   S.status = "done"; drawStations(); drawTabs(); render();
 }
-function resetRunKeepResult() { S.stationNote = {}; S.stationState = {}; S.partial = {}; S.events = []; drawStations(); drawLedger(); }
+function resetRunKeepResult() { S.stationNote = {}; S.stationState = {}; S.partial = {}; S.events = []; SEEN.clear(); S.ledgerCount = 0; drawStations(); drawLedger(); }
 function applyEventReplay(e) { applyEvent(e); }
 
 // ------------------------------------------------------------------ Quality
