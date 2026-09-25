@@ -1,0 +1,1 @@
+{"folder": "serving", "files": ["Dockerfile", "README.md", "feature_spec.json", "metadata.json", "model.json", "reference.json", "requirements.txt", "sentinel", "serve.py"], "docker": {"ran": true, "ok": true, "max_abs_diff": 0.0, "image": "sentinel-model:export", "image_mb": 151.1, "build_seconds": 0.4, "port": 58163}}

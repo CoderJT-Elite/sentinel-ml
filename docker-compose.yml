@@ -1,0 +1,48 @@
+# Full stack: Sentinel app + PostgreSQL (runs, decisions, predictions) + MLflow tracking/registry server.
+#   docker compose up --build        then open http://localhost:8000
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel"]
+      interval: 3s
+      retries: 20
+
+  mlflow:
+    build: .
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri postgresql://sentinel:sentinel@db:5432/sentinel
+      --artifacts-destination /mlartifacts --serve-artifacts
+    depends_on:
+      db: {condition: service_healthy}
+    volumes: [mlartifacts:/mlartifacts]
+    ports: ["5000:5000"]
+
+  app:
+    build: .
+    depends_on:
+      db: {condition: service_healthy}
+      mlflow: {condition: service_started}
+    environment:
+      DATABASE_URL: postgresql+psycopg2://sentinel:sentinel@db:5432/sentinel
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      SENTINEL_DATA: /app/data
+      SENTINEL_RUNS: /app/runs
+      SENTINEL_DOCKER_HOST: host.docker.internal
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes:
+      - ./data:/app/data
+      - runs:/app/runs
+      - /var/run/docker.sock:/var/run/docker.sock   # lets the Deploy step build and test the model container
+    ports: ["8000:8000"]
+
+volumes:
+  pgdata:
+  mlartifacts:
+  runs:

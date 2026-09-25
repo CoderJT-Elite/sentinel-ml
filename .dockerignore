@@ -1,0 +1,9 @@
+.git
+data/*.zip
+__pycache__
+*.pyc
+mlruns
+mlflow.db
+runs
+deploy
+.pytest_cache
