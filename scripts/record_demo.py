@@ -160,6 +160,8 @@ with sync_playwright() as p:
         pg.wait_for_timeout(2500)
         glide(pg, "#rt")
         pg.wait_for_selector(".view table:has-text('Challenger')", timeout=300_000)
+        pg.wait_for_timeout(1500)
+        pg.mouse.wheel(0, 320)
         pg.wait_for_timeout(3500)
         finish(ctx, pg, "drift")
     b.close()
