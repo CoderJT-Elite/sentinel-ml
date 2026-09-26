@@ -17,10 +17,10 @@ import numpy as np
 import pandas as pd
 from langgraph.graph import END, StateGraph
 
-from . import config, deployer, explainer, features, monitor, registry, selector, steward, trainer
+from . import config, deployer, explainer, features, monitor, registry, selector, steward, trainer, whatif
 from .data import Dataset
 from .store import Store
-from .util import canonical, clean, frame_fingerprint, run_hash, sha256
+from .util import Raw, canonical, clean, frame_fingerprint, run_hash, sha256
 
 NODES = [
     ("data_steward", "Data Steward"),
@@ -222,6 +222,12 @@ def n_trainer(state: State) -> State:
     return state
 
 
+def _feature_row(Xh, i: int, family: str) -> list:
+    """The model's input row for the what-if panel, at the precision the library scores in."""
+    row = Xh.iloc[i].to_numpy(dtype=float)
+    return Raw([None if np.isnan(v) else (float(f"{np.float32(v):.9g}") if family == "xgboost" else float(v)) for v in row])
+
+
 def n_explainer(state: State) -> State:
     _emit(state, "explainer", "start", "Computing Tree-SHAP contributions")
     fr, spec = state["framing"], state["spec"]
@@ -253,6 +259,7 @@ def n_explainer(state: State) -> State:
                                        meta.get("entity_noun", "Unit"), int(ent[i]), meta.get("time_noun", "cycle"),
                                        int(ho[spec.time_col].iloc[i]), fr["task"])
             ex["cycle"] = int(ho[spec.time_col].iloc[i])
+            ex["x"] = _feature_row(Xh, i, fam)
             ex["actual"] = float(state["yh"][i])
             ex["actual_rul"] = float(ho["__rul__"].iloc[i]) if "__rul__" in ho else None
             ex["curve"] = {"t": ho[spec.time_col].iloc[s:e].astype(int).tolist(),
@@ -267,6 +274,7 @@ def n_explainer(state: State) -> State:
             ex = explainer.explain_row(int(i), Xh, c_ho, float(p_ho[i]), ref, labels, state["threshold"] or 0.5, table,
                                        meta.get("entity_noun", "Machine"), ident, meta.get("time_noun", "row"), int(i), fr["task"])
             ex["cycle"], ex["actual"], ex["actual_rul"] = int(i), float(state["yh"][i]), None
+            ex["x"] = _feature_row(Xh, int(i), fam)
             fleet.append(ex)
     fleet.sort(key=lambda d: (-d["risk"] if fr["task"] == "classification" else d["risk"], str(d["id"])))
     state["xai"] = {"global": gi, "parity": parity, "reliability": table, "fleet": fleet, "ref_stats": ref}
@@ -355,7 +363,8 @@ def n_deploy(state: State) -> State:
         "decisions": state["decisions"], "leaderboard": [{k: v for k, v in r.items() if not k.startswith("_")} for r in state["board"]],
         "champion": {"family": fam, "name": champ["name"], "threshold": state["threshold"]},
         "explain": {"global": state["xai"]["global"], "parity": state["xai"]["parity"], "reliability": state["xai"]["reliability"]},
-        "fleet": state["xai"]["fleet"], "registry": reg, "serving": {"folder": pkg, "parity": parity},
+        "fleet": state["xai"]["fleet"], "whatif": Raw(whatif.export(fam, state["trained"]["models"][fam], state["X"], state["xai"]["ref_stats"], fr["task"])),
+        "dataset_fp": fp, "registry": reg, "serving": {"folder": pkg, "parity": parity},
         "monitor": {"baseline": base, "reference_features": len(state["drift_ref"]), "window": config.MONITOR_WINDOW},
         "feature_spec": {"n_features": len(spec.feature_names), "dropped": spec.dropped},
         "entity_noun": meta["entity_noun"], "time_noun": meta["time_noun"], "llm_calls": 0,

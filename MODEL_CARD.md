@@ -1,70 +1,52 @@
-# Model Card: Sentinel Champion Models
+# Model card
 
-This model card follows the framework proposed by Mitchell et al. (2019). It covers the two production models trained by Sentinel: the C-MAPSS FD001 turbofan degradation model and the UCI AI4I 2020 machine failure model.
+This follows the outline from Mitchell et al., *Model Cards for Model Reporting* (2019). It covers the two champions Sentinel picked in the recorded runs behind the hosted demo. Every number below is read from those runs (`docs/demo/data/run.json` and `run_ai4i.json`), and a fresh run reproduces both run hashes.
 
-## 1. Model details
+Both models are prototypes trained on public benchmark data. Neither has been tested on a real plant.
 
-- **Developer:** John Tewolde
-- **Model date:** September 2026
-- **Model type:** Gradient boosted decision trees (XGBoost 3.1.2 and LightGBM 4.6.0)
-- **Task:** Binary classification for early failure warning
-- **License:** MIT
-- **Contact:** Repository issues or submission kit details
+## Model details
 
-### Model architectures
+| | C-MAPSS turbofan | AI4I milling machine |
+|---|---|---|
+| Champion | XGBoost, 350 trees, max depth 3 | LightGBM, 400 trees, 48 leaves |
+| Task | fails within 30 cycles (yes or no) | machine failure (yes or no) |
+| Ranked by | ROC-AUC | average precision (failures are rare) |
+| Inputs | 86 features built from 17 sensors | 9 features |
+| Run hash | `f206c5c62729d1464cce14aa15775ea3e5593d5ec7529184c1411ce9ffc01c2c` | `619a8a6c0147ffcfa9bca83e255d35255678aa1e95e47afe9e9d55186597aaf5` |
 
-1. **Turbofan champion (C-MAPSS FD001):**
-   - Family: XGBoost (`n_estimators=350`, `max_depth=3`, `learning_rate=0.040331`, `subsample=0.776061`, `colsample_bytree=0.561019`)
-   - Input shape: 86 engineered features (causal 5-step rolling means, standard deviations, 10-step slopes, 5-step lags, and operational cycle)
-   - Cryptographic run hash: `f206c5c62729d1464cce14aa15775ea3e5593d5ec7529184c1411ce9ffc01c2c`
+Sentinel picked each family and its settings with a seeded Optuna search scored by grouped cross-validation. The full parameters are in the leaderboard of each run record. Developer: John Tewolde. License: MIT.
 
-2. **Milling machine champion (UCI AI4I 2020):**
-   - Family: LightGBM (`n_estimators=350`, `num_leaves=13`, `learning_rate=0.040331`, `min_child_samples=72`, `subsample=0.776061`, `colsample_bytree=0.561019`)
-   - Input shape: 7 numeric sensors and one-hot tool quality types
-   - Cryptographic run hash: `619a8a6c0147ffcfa9bca83e255d35255678aa1e95e47afe9e9d55186597aaf5`
+## Intended use
 
-## 2. Intended use
+Ranking a fleet by failure risk and explaining each alert, as a screening aid for a reliability engineer who makes the call. It's built to be reproduced and audited, not to act on its own.
 
-- **Primary intended uses:** Fleet-level health screening, condition monitoring triage, and remaining useful life warning alerts for rotating equipment.
-- **Intended operators:** Plant reliability engineers, maintenance planners, and field service technicians.
-- **Out-of-scope uses:** Automated emergency shutdown loops, safety-instrumented systems (SIS), or unmonitored closed-loop actuation without technician verification.
+Not for safety-instrumented functions, automatic shutdowns, or any closed loop that acts without a person checking. It hasn't been validated for that.
 
-## 3. Training data
+## Training and evaluation data
 
-- **C-MAPSS FD001:** 100 simulated turbofan run-to-failure trajectories (20,631 records). Training used 5-fold grouped cross-validation grouped by engine ID. No engine appears in both train and validation splits.
-- **UCI AI4I 2020:** 10,000 synthetic machine observations reflecting actual industrial milling parameters with 339 failure events (3.39% class imbalance).
+- **C-MAPSS FD001.** 100 training engines (20,631 rows). The official test set (100 engines, 13,096 rows) is the holdout, and it never influences which model wins.
+- **AI4I 2020.** 8,000 training rows and 2,000 held out, with about 3.4% failures. The Data Steward drops the identifier columns and the four failure-mode flags that leak the target.
 
-## 4. Evaluation data and metrics
+Both datasets are simulated or synthetic. See `DATASET_DATASHEET.md`.
 
-### C-MAPSS FD001 holdout (100 test engines)
+## Results
 
-- Metric: ROC-AUC (ranking capability on balanced temporal trajectories)
-- 5-fold cross-validation ROC-AUC: 0.9930 +/- 0.0018
-- Holdout ROC-AUC (all 13,096 test rows): 0.9934
-- Holdout ROC-AUC (final observation per engine): 0.9808
-- Holdout Average Precision: 0.8246
-- Holdout F1 score at alert threshold (0.7495): 0.7191
+**C-MAPSS.** Five-fold cross-validation grouped by engine gives ROC-AUC 0.9930 (spread 0.0018). On the holdout, over every row: ROC-AUC 0.9934, average precision 0.8246, F1 0.7191 at the alert threshold of 0.7495. On each test engine's last reading alone: ROC-AUC 0.9808, average precision 0.9492, F1 0.8085.
 
-### UCI AI4I 2020 holdout (2,000 test records)
+The linear baseline lands within 0.001 of the champion on cross-validated ROC-AUC, so most of the signal in this benchmark is simple.
 
-- Metric: Average Precision (PR-AUC, selected by Sentinel due to 3.39% minority prevalence)
-- 5-fold cross-validation Average Precision: 0.8163 +/- 0.0383
-- Holdout ROC-AUC: 0.9753
-- Holdout Average Precision: 0.8037
-- Holdout F1 score at alert threshold (0.4284): 0.7473
+**AI4I.** Cross-validated average precision is 0.8163 with a wide spread of 0.0627, so the ranking of LightGBM ahead of XGBoost (0.7966) is not a clear win. On the 2,000 held-out rows: ROC-AUC 0.9753, average precision 0.7887, F1 0.7719 at the alert threshold of 0.4309. XGBoost's holdout average precision (0.7946) is slightly higher than the champion's. The holdout doesn't pick the winner, so I report it as it is.
 
-## 5. Explainability and verification
+## Explanations and checks
 
-- **Tree-SHAP parity:** Native C-based Tree-SHAP calculations are verified against the reference `shap.TreeExplainer` library. The maximum absolute difference across all features and samples is 0.000000.
-- **Serving parity:** The exported standalone FastAPI service is tested against in-process Python predictions. Maximum score difference is 0.000000.
-- **In-browser parity:** The 350 exported JSON decision trees evaluated in JavaScript match Python XGBoost score outputs to within floating-point epsilon (1e-6).
+- Tree-SHAP comes from each library's native contribution output. It matches `shap.TreeExplainer` with a maximum difference of 0.0 on 400 sampled rows in both runs.
+- The generated serving package reproduces the trained model's scores with a maximum difference of 0.0.
+- The confidence in an alert sentence is the out-of-fold hit rate of the score band, with its sample size.
 
-## 6. Uncertainty quantification
+## Limits
 
-- **Conformal intervals:** Nonconformity scores are computed out-of-fold to provide distribution-free marginal coverage guarantees at 90% confidence ($1 - \alpha = 0.90$).
-- **Reliability calibration:** Predictions are grouped into 10 historical probability bins. Bins report empirical out-of-fold hit rates to prevent overconfidence.
-
-## 7. Limitations and ethical considerations
-
-- Simulated and synthetic benchmarks reflect stationary degradation curves. Real-world machinery often exhibits sudden mechanical shocks (bearing spalls, debris strikes) that do not present gradual sensor drift.
-- Drift detection relies on Population Stability Index (PSI). High PSI values flag changes in sensor distributions, requiring operator inspection rather than blind retraining.
+- Simulated data has smooth degradation. Real machines also fail from sudden shocks that give no gradual warning.
+- C-MAPSS FD001 has one operating condition and one fault mode.
+- The AI4I result is on synthetic rows, with a small number of failures in each fold, so the numbers move a lot between folds.
+- The alert threshold maximizes F1 on out-of-fold scores. It doesn't account for what a miss or a false alarm costs. The Fleet tab's cost calculator lets you put in your own costs.
+- Drift checks use the population stability index on a healthy early-life window. A flagged shift needs a person to look at it.

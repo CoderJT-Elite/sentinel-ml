@@ -1,0 +1,7 @@
+# Optional: lets the Deploy tab build and smoke-test the generated model container.
+#   DOCKER_SOCK=/var/run/docker.sock docker compose -f docker-compose.yml -f docker-compose.smoke.yml up --build
+# This hands the app container control of your Docker daemon, which is root-equivalent on the host.
+# Leave it off unless you want the container smoke test.
+services:
+  app:
+    user: root

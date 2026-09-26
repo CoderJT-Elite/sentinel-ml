@@ -8,8 +8,17 @@ import numpy as np
 import pandas as pd
 
 
+class Raw:
+    """Marks a value that `clean` must pass through unrounded (model thresholds and feature values)."""
+
+    def __init__(self, value):
+        self.value = value
+
+
 def clean(o, nd: int = 6):
     """Recursively convert numpy/pandas values to JSON-safe python, rounding floats."""
+    if isinstance(o, Raw):
+        return o.value
     if isinstance(o, dict):
         return {str(k): clean(v, nd) for k, v in o.items() if not str(k).startswith("_")}
     if isinstance(o, (list, tuple)):

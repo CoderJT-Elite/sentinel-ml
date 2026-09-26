@@ -7,7 +7,7 @@
 
 [![Run hash](https://img.shields.io/badge/run__hash-f206c5c62729...-d8001b?style=flat-square)](docs/TECHNICAL_DOCUMENTATION.md#4-reproducibility)
 [![LLM calls](https://img.shields.io/badge/LLM__calls-0_(import--audited)-101418?style=flat-square)](tests/test_pipeline.py)
-[![Tests](https://img.shields.io/badge/tests-20_passing-08635f?style=flat-square)](tests/)
+[![Tests](https://img.shields.io/badge/tests-24_passing-08635f?style=flat-square)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5b6670?style=flat-square)](LICENSE)
 
 **[Hosted demo](https://coderjt-elite.github.io/sentinel-ml/demo/)** &nbsp;|&nbsp; **[Technical documentation](docs/TECHNICAL_DOCUMENTATION.md)** &nbsp;|&nbsp; **[Run it yourself](#run-it)**
@@ -66,7 +66,7 @@ Every part of that sentence is computed. The 94% is the out-of-fold hit rate for
 
 ## Run it
 
-**Hosted demo, no install.** Open [coderjt-elite.github.io/sentinel-ml/demo](https://coderjt-elite.github.io/sentinel-ml/demo/). It replays a real run, includes a what-if sketch on the Fleet tab (a linear estimate from a reading's top drivers; it doesn't re-run the model), and can print a run report.
+**Hosted demo, no install.** Open [coderjt-elite.github.io/sentinel-ml/demo](https://coderjt-elite.github.io/sentinel-ml/demo/). It replays a real run on each dataset (switch on the Data tab), lets you move the top drivers of a reading on the Fleet tab and re-scores the real champion trees in your browser, and can print a run report.
 
 **The full app, with PostgreSQL and an MLflow server.**
 
@@ -77,7 +77,7 @@ python scripts/fetch_data.py        # downloads NASA C-MAPSS and UCI AI4I into .
 docker compose up --build
 ```
 
-Then open [http://localhost:8000](http://localhost:8000), pick a dataset and press Run. A full C-MAPSS run takes about two and a half minutes.
+Then open [http://localhost:8000](http://localhost:8000), pick a dataset and press Run. A full C-MAPSS run takes about two and a half minutes. The Deploy tab's container test needs the Docker socket, which is off by default; [SECURITY.md](SECURITY.md) explains how to turn it on.
 
 **Just the pipeline and the tests.**
 
@@ -85,7 +85,7 @@ Then open [http://localhost:8000](http://localhost:8000), pick a dataset and pre
 pip install -r requirements.txt
 python scripts/fetch_data.py
 python -m sentinel.cli run cmapss_fd001 --budget fast
-pytest -q                           # 19 tests, about two minutes
+pytest -q                           # 24 tests, about two minutes
 ```
 
 The hash depends on library versions, so `requirements.txt` pins exact ones and the Docker image installs from it. If you run outside Docker, expect the same decisions but possibly a different hash.
@@ -115,7 +115,7 @@ sentinel/             the pipeline
 web/                  the single-page UI
 docs/                 technical documentation and the static demo
 scripts/              data fetchers, screenshots, screen recordings, static export
-tests/                20 tests: determinism, parity, import audit, gates, conformal
+tests/                24 tests: determinism, parity, import audit, gates, what-if trees
 ```
 
 ## Data, citations and license

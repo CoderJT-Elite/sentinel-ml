@@ -149,3 +149,21 @@ svg text { font-family: var(--mono); font-size: 10px; fill: var(--steel); }
   .split { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* fleet: what-if and cost cards */
+.whatif, .econ { margin-top: 16px; background: var(--paper); border: 1px solid var(--rule); padding: 14px; }
+.whatif { border-color: var(--ink); }
+.whatif h3, .econ h3 { font-size: 14px; margin: 0; letter-spacing: .02em; }
+.whatif .sub, .econ .sub { margin: 2px 0 0; font-size: 12px; }
+.whatif-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+.whatif-head .btn { font-size: 11px; padding: 3px 8px; }
+.sim-rows { margin-top: 12px; display: grid; gap: 8px; }
+.sim-row { display: grid; grid-template-columns: minmax(140px, 1.4fr) 1.5fr minmax(96px, 1fr); gap: 8px; align-items: center; font-size: 12px; }
+.sim-row input[type=range] { width: 100%; min-height: 28px; cursor: pointer; }
+.sim-out { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--rule); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--steel); }
+.sim-out b { font-size: 15px; color: var(--ink); }
+.econ-inputs { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.econ-inputs label { font: 500 11px var(--mono); color: var(--steel); display: grid; gap: 4px; }
+.econ-inputs input { font: inherit; padding: 6px 8px; border: 1px solid var(--ink); background: #fff; width: 100%; }
+.econ-table { margin-top: 10px; }
+.econ-table td:first-child { white-space: normal; }
