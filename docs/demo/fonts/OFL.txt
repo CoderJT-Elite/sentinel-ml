@@ -1,0 +1,4 @@
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+IBM Plex is licensed under the SIL Open Font License, Version 1.1.
+Copyright (c) 2017 IBM Corp. with Reserved Font Name "Plex"
+https://github.com/IBM/plex

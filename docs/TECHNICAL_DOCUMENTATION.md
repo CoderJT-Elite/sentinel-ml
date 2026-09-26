@@ -48,6 +48,19 @@ The consequences are engineering properties, not slogans:
 | Graph | `sentinel/graph.py` | The six nodes and the conditional gate edges. |
 | API + UI | `api/main.py`, `web/` | REST, server-sent events, single-page UI. |
 
+### 2.1 ISO 13374 Condition Monitoring Functional Layer Alignment
+
+Sentinel's stations are arranged to follow the six functional blocks of ISO 13374 (*Condition monitoring and diagnostics of machine systems*). This is an organizing analogy, not a conformance claim:
+
+| ISO 13374 Layer | Standard Function | Sentinel Pipeline Station & Implementation |
+|---|---|---|
+| **Layer 1: DA** | Data Acquisition | Dataset adapters and CSV loader (`sentinel/data.py`); no live streaming yet |
+| **Layer 2: DM** | Data Manipulation | Data Steward (`sentinel/steward.py`) & Feature Engineer (`sentinel/features.py`) |
+| **Layer 3: SD** | State Detection | Early-life healthy baseline calculation & z-score deviation computation |
+| **Layer 4: HA** | Health Assessment | GroupKFold cross-validated tournament & Tree-SHAP explainer (`sentinel/trainer.py`, `sentinel/explainer.py`) |
+| **Layer 5: PA** | Prognostic Assessment | RUL alarm horizon (30 cycles = 0.15 &times; median life) & calibrated hit rates (`sentinel/selector.py`) |
+| **Layer 6: AG** | Advisory Generation | Alert sentences, a risk-ranked fleet list, and a printable run report (`api/`, `web/`) |
+
 ## 3. The decision rules
 
 Each row is a rule the pipeline applies, with its threshold from `config.py`. Every firing is written to the decision ledger with its inputs.
@@ -142,6 +155,15 @@ The UI's drift scenario injects a calibration offset (a number of training stand
 | `POST /api/runs/{id}/drift`, `POST /api/runs/{id}/retrain` | Drift scenario and champion/challenger |
 | `GET /api/runs/{id}/lineage` | MLflow versions |
 
+### 10.1 Security and offline operation
+
+Sentinel is a prototype. It has not been assessed against IEC 62443 or any other security standard. These design choices suit an isolated plant network:
+
+- **No external calls at run time.** Fonts, stylesheets and scripts are bundled locally (`web/fonts/`, IBM Plex under the SIL OFL), so the web app makes no requests to Google Fonts or a CDN. Once the images and data are pulled, it runs without Internet access.
+- **Docker socket is optional.** The container smoke test needs `/var/run/docker.sock`. Set `DOCKER_SOCK=/dev/null` to leave it out: the Deploy step then reports that Docker is unavailable, skips the smoke test and still writes the service package.
+- **Bounded file access.** Dataset and run paths are resolved and must stay inside the uploads, samples or runs folder, which blocks directory traversal.
+- **Upload limits.** Uploads are capped at 50 MB, restricted to `.csv` and `.txt`, and rejected if the file does not parse as CSV.
+
 ## 11. Setup and testing
 
 ```bash
@@ -168,6 +190,34 @@ Test coverage: structure detection, steward checks and the failing gate, leakage
 - Drift injection is simulated; a production deployment would feed the monitor from live sensor streams.
 - Multiclass targets are rejected with a clear message rather than guessed at.
 
-## 14. Data sources and licences
+### 13.1 Architecture Decision Records (ADRs)
 
-NASA C-MAPSS turbofan degradation data, NASA Prognostics Center of Excellence (public). UCI AI4I 2020 Predictive Maintenance Dataset (UCI ML Repository, CC BY 4.0). Sentinel's code is MIT licensed.
+- **ADR-001: Deterministic Decision Logic over Generative Orchestration**
+  - *Context*: A plant reviewer has to be able to reproduce an alert and trace it to the rule that fired.
+  - *Decision*: Zero generative LLM calls anywhere in the runtime decision path. All framing, feature selection, and retraining decisions are fixed mathematical rules and statistical tests.
+- **ADR-002: GroupKFold Grouping by Unit to Prevent Temporal Data Leakage**
+  - *Context*: Sensor telemetry from run-to-failure engines exhibits strong auto-correlation across cycles.
+  - *Decision*: Folds must be grouped strictly by machine unit (`GroupKFold(5)`). No unit may ever appear in both training and validation folds simultaneously.
+- **ADR-003: Population Stability Index (PSI) on Early-Life Calibration Windows**
+  - *Context*: In degrading machines, sensor drift across operating life is natural degradation, not model covariate shift.
+  - *Decision*: Baseline feature distributions for drift detection are locked on the initial 50-cycle healthy operating window, preventing the monitor from misinterpreting expected wear as calibration failure.
+- **ADR-004: Native Tree-SHAP in the Served Model**
+  - *Context*: Shipping the full explainer library in every model container adds dependencies.
+  - *Decision*: Tree-SHAP attribution weights are extracted natively via tree margins, verified against `shap.TreeExplainer` (max diff 0.0), and served with zero extra dependencies.
+
+## 14. Why downtime matters
+
+Siemens' report *The True Cost of Downtime 2024* estimates that the Fortune Global 500 lose about \$1.4 trillion a year to unplanned downtime, roughly 11% of their revenue. Sentinel makes no savings or ROI claim of its own: it was evaluated on public benchmark data, not on a plant, and any business case would need a plant's own failure and cost history.
+
+## 15. Data Sources, Licences & Citations
+
+1. **NASA C-MAPSS FD001 Turbofan Degradation**:
+   - Source: NASA Prognostics Center of Excellence (PCoE), Ames Research Center (Public Domain).
+   - Citation: Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). *Damage propagation modeling for aircraft engine run-to-failure simulation.* In Proceedings of the 1st International Conference on Prognostics and Health Management (PHM08), Denver, CO.
+2. **UCI AI4I 2020 Predictive Maintenance Dataset**:
+   - Source: UCI Machine Learning Repository, Dataset #601 (CC BY 4.0).
+   - Citation: Matzka, S. (2020). *Explainable Artificial Intelligence for Predictive Maintenance Applications.* In 2020 Third International Conference on Artificial Intelligence for Industries (AI4I), pp. 69-74. IEEE.
+3. **True Cost of Downtime**:
+   - Citation: Siemens (2024). *The True Cost of Downtime 2024.* Figure quoted as reported by Siemens; not independently verified here.
+4. **Software License**:
+   - Sentinel's codebase is released under the MIT License. Typography is licensed under the SIL Open Font License v1.1.

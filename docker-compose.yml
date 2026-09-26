@@ -41,7 +41,9 @@ services:
     volumes:
       - ./data:/app/data
       - runs:/app/runs
-      - /var/run/docker.sock:/var/run/docker.sock   # lets the Deploy step build and test the model container
+      # Docker socket: lets the Deploy step build and smoke-test the model container. It gives the app
+      # root-equivalent access to the host; set DOCKER_SOCK=/dev/null to skip the smoke test.
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
     ports: ["8000:8000"]
 
 volumes:

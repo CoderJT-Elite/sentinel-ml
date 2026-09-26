@@ -66,13 +66,19 @@ def _run_job(job: Job, ds: data.Dataset) -> None:
 
 def _load_dataset(key: str, options: dict) -> data.Dataset:
     if key.startswith("upload:"):
-        p = pathlib.Path(config.RUNS_DIR) / "uploads" / key.split(":", 1)[1]
-        if not p.exists():
+        raw_name = key.split(":", 1)[1]
+        clean_name = pathlib.Path(raw_name).name
+        uploads_dir = (pathlib.Path(config.RUNS_DIR) / "uploads").resolve()
+        p = (uploads_dir / clean_name).resolve()
+        if not p.is_relative_to(uploads_dir) or not p.exists():
             raise HTTPException(404, "uploaded dataset not found")
         return data.from_csv(str(p), p.stem, options.get("target"))
     if key.startswith("sample:"):
-        p = ROOT / "samples" / (key.split(":", 1)[1] + ".csv")
-        if not p.exists():
+        raw_name = key.split(":", 1)[1]
+        clean_name = pathlib.Path(raw_name).name + ".csv"
+        samples_dir = (ROOT / "samples").resolve()
+        p = (samples_dir / clean_name).resolve()
+        if not p.is_relative_to(samples_dir) or not p.exists():
             raise HTTPException(404, "sample not found")
         return data.from_csv(str(p), p.stem, options.get("target") or "Machine failure")
     try:
@@ -109,13 +115,38 @@ def datasets():
 
 @app.post("/api/upload")
 async def upload(file: UploadFile = File(...), target: str = Form("")):
+    orig_name = pathlib.Path(file.filename or "upload.csv").name
+    ext = pathlib.Path(orig_name).suffix.lower()
+    if ext not in (".csv", ".txt"):
+        raise HTTPException(400, "Only .csv or .txt files are supported")
+    
+    stem = "".join(c for c in pathlib.Path(orig_name).stem if c.isalnum() or c in ("-", "_"))[:50] or "upload"
     d = pathlib.Path(config.RUNS_DIR) / "uploads"
     d.mkdir(parents=True, exist_ok=True)
-    name = f"{uuid.uuid4().hex[:8]}_{pathlib.Path(file.filename or 'upload.csv').stem}.csv"
-    with open(d / name, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    name = f"{uuid.uuid4().hex[:8]}_{stem}.csv"
+    target_path = d / name
+
+    max_bytes = 50 * 1024 * 1024
+    total_bytes = 0
+    with open(target_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            total_bytes += len(chunk)
+            if total_bytes > max_bytes:
+                target_path.unlink(missing_ok=True)
+                raise HTTPException(413, "Uploaded file exceeds maximum allowed size of 50 MB")
+            f.write(chunk)
+    
     import pandas as pd
-    cols = list(pd.read_csv(d / name, nrows=5).columns)
+    try:
+        df_head = pd.read_csv(target_path, nrows=5)
+        if df_head.empty and len(df_head.columns) == 0:
+            target_path.unlink(missing_ok=True)
+            raise HTTPException(400, "Uploaded CSV file is empty")
+        cols = list(df_head.columns)
+    except Exception as e:
+        target_path.unlink(missing_ok=True)
+        raise HTTPException(400, f"Failed to parse uploaded CSV: {e}")
+        
     return {"key": f"upload:{name}", "name": name, "columns": cols, "target": target or None}
 
 
@@ -149,13 +180,15 @@ def list_runs():
 def _job(run_id: str) -> Job:
     if run_id in JOBS:
         return JOBS[run_id]
-    p = pathlib.Path(config.RUNS_DIR) / run_id / "summary.json"
-    if p.exists():  # a finished run from an earlier session
-        j = Job(run_id, "", {})
+    clean_id = pathlib.Path(run_id).name
+    runs_dir = pathlib.Path(config.RUNS_DIR).resolve()
+    p = (runs_dir / clean_id / "summary.json").resolve()
+    if p.is_relative_to(runs_dir) and p.exists():  # a finished run from an earlier session
+        j = Job(clean_id, "", {})
         j.result, j.status = json.loads(p.read_text()), "done"
-        ev = pathlib.Path(config.RUNS_DIR) / run_id / "events.json"
+        ev = runs_dir / clean_id / "events.json"
         j.events = json.loads(ev.read_text()) if ev.exists() else []
-        JOBS[run_id] = j
+        JOBS[clean_id] = j
         return j
     raise HTTPException(404, "run not found")
 
