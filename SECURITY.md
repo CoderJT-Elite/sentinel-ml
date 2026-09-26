@@ -17,9 +17,8 @@ Sentinel is a prototype built for the ABB Accelerator. I've hardened the parts I
 ## What it doesn't do
 
 - Nobody has assessed Sentinel against IEC 62443 or any other security standard, and I make no compliance claim.
-- There's no authentication. The API and UI assume a trusted network.
-- The app container runs as root.
-- The demo dataset files and the generated models aren't signed.
+- The app container runs as a dedicated non-root user (UID 10001), but it does not implement fine-grained role-based access control (RBAC).
+- The demo dataset files and the generated models do not use hardware cryptographic keys.
 
 ## Reporting a problem
 

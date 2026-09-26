@@ -7,7 +7,7 @@
 
 [![Run hash](https://img.shields.io/badge/run__hash-f206c5c62729...-d8001b?style=flat-square)](docs/TECHNICAL_DOCUMENTATION.md#4-reproducibility)
 [![LLM calls](https://img.shields.io/badge/LLM__calls-0_(import--audited)-101418?style=flat-square)](tests/test_pipeline.py)
-[![Tests](https://img.shields.io/badge/tests-19_passing-08635f?style=flat-square)](tests/)
+[![Tests](https://img.shields.io/badge/tests-20_passing-08635f?style=flat-square)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5b6670?style=flat-square)](LICENSE)
 
 **[Hosted demo](https://coderjt-elite.github.io/sentinel-ml/demo/)** &nbsp;|&nbsp; **[Technical documentation](docs/TECHNICAL_DOCUMENTATION.md)** &nbsp;|&nbsp; **[Run it yourself](#run-it)**
@@ -115,7 +115,7 @@ sentinel/             the pipeline
 web/                  the single-page UI
 docs/                 technical documentation and the static demo
 scripts/              data fetchers, screenshots, screen recordings, static export
-tests/                19 tests: determinism, parity, import audit, gates
+tests/                20 tests: determinism, parity, import audit, gates, conformal
 ```
 
 ## Data, citations and license

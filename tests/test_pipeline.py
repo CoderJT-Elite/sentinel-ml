@@ -159,6 +159,19 @@ def test_gate_halts_the_pipeline(isolated_runs):
     assert r.get("halted") and not r["scorecard"]["passed"]
 
 
+def test_conformal_bounds_coverage():
+    from sentinel.explainer import conformal_bounds, conformal_quantile
+    rng = np.random.RandomState(42)
+    n = 1000
+    y_true = (rng.rand(n) < 0.2).astype(float)
+    y_prob = np.clip(y_true * 0.8 + rng.normal(0, 0.1, n), 0, 1)
+    q = conformal_quantile(y_true, y_prob, alpha=0.10)
+    assert 0.0 < q < 1.0
+    lo, hi = conformal_bounds(0.5, q)
+    assert 0.0 <= lo <= 0.5 <= hi <= 1.0
+
+
+
 # ---------------------------------------------------------------- no language model in the decision path
 BANNED = {"openai", "anthropic", "transformers", "langchain", "langchain_openai", "langchain_anthropic",
           "cohere", "google.generativeai", "ollama", "llama_cpp", "litellm"}

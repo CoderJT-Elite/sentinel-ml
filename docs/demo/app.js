@@ -33,7 +33,24 @@ async function j(url, opts) {
 
 // ------------------------------------------------------------------ boot
 async function boot() {
-  try { S.info = await j("api/mode"); S.mode = "live"; } catch { S.mode = "static"; }
+  try {
+    const res = await fetch("api/mode");
+    if (res.ok) {
+      S.info = await res.json();
+      S.mode = "live";
+    } else {
+      S.mode = "static";
+    }
+  } catch {
+    S.mode = "static";
+  }
+
+  try {
+    S.modelTrees = await j("data/trees.json");
+  } catch {
+    S.modelTrees = null;
+  }
+
   const b = $("#modeBadge");
   if (S.mode === "live") {
     b.textContent = "Live app"; b.className = "badge live";
@@ -47,7 +64,17 @@ async function boot() {
     S.events = await j("data/events.json");
     S.staticDrift = await j("data/drift.json").catch(() => null);
     S.staticDeploy = await j("data/deploy.json").catch(() => null);
-    S.datasets = [S.result.dataset];
+    S.datasets = [
+      S.result.dataset,
+      {
+        key: "ai4i",
+        name: "UCI AI4I 2020 milling machine failures",
+        description: "10,000 rows of milling-machine process data with a rare (3.4%) machine-failure label. Contains identifier columns and five failure-mode flags that leak the target; the Data Steward has to catch both.",
+        rows: 8000,
+        holdout_rows: 2000,
+        meta: { source: "UCI Machine Learning Repository #601" }
+      }
+    ];
     S.selected = S.result.dataset.key;
     S.runId = S.result.run_id;
     S.status = "done";
@@ -61,6 +88,37 @@ async function boot() {
   const certBtn = $("#btnExportCert");
   if (certBtn) certBtn.onclick = exportAuditCertificate;
 }
+
+async function switchDataset(key) {
+  if (key === S.selected && S.result) return;
+  S.selected = key;
+  if (S.mode === "static") {
+    if (key === "ai4i") {
+      S.result = await j("data/run_ai4i.json");
+      S.events = await j("data/events_ai4i.json").catch(() => []);
+      S.staticDrift = null;
+      S.staticDeploy = null;
+    } else {
+      S.result = await j("data/run.json");
+      S.events = await j("data/events.json");
+      S.staticDrift = await j("data/drift.json").catch(() => null);
+      S.staticDeploy = await j("data/deploy.json").catch(() => null);
+    }
+    S.runId = S.result.run_id;
+    S.status = "done";
+    SEEN.clear();
+    S.stationState = {}; S.stationNote = {}; S.partial = {};
+    S.events.forEach((e) => applyEvent(e, true));
+    setHash();
+    S.driftSensor = driftSensors()[0];
+    S.tab = "quality";
+    S.fleetSel = S.result.fleet[0]?.id;
+    drawStations(); drawTabs(); drawLedger(); render();
+  } else {
+    render();
+  }
+}
+
 
 // ------------------------------------------------------------------ pipeline events
 const SEEN = new Set();
@@ -123,7 +181,7 @@ function exportAuditCertificate() {
   @media print { body { padding: 0; } button { display: none; } }
 </style></head><body>
 <div class="header"><div><h1>Sentinel run report</h1>
-  <div style="color:#5b6670">Generated in the browser from the loaded run. Nothing here is signed or certified.</div></div>
+  <div style="color:#5b6670">Generated in the browser from the loaded run. A prototype artifact for inspection.</div></div>
   <button onclick="window.print()" style="padding:8px 16px;background:#101418;color:#fff;border:none;cursor:pointer;font-weight:600">Print / save as PDF</button></div>
 <b>Run hash (SHA-256 of data fingerprint, options, decision log and leaderboard)</b>
 <div class="hash">${esc(h)}</div>
@@ -183,8 +241,21 @@ function avail(id) {
 }
 function drawTabs() {
   $("#tabs").innerHTML = TABS.map(([id, label]) =>
-    `<button class="tab" role="tab" data-id="${id}" aria-selected="${S.tab === id}" ${avail(id) ? "" : "disabled"}>${label}</button>`).join("");
-  $("#tabs").querySelectorAll(".tab").forEach((b) => (b.onclick = () => { S.tab = b.dataset.id; drawTabs(); render(); }));
+    `<button class="tab" role="tab" data-id="${id}" aria-selected="${S.tab === id}" tabindex="${S.tab === id ? '0' : '-1'}" ${avail(id) ? "" : "disabled"}>${label}</button>`).join("");
+  const tabEls = Array.from($("#tabs").querySelectorAll(".tab:not([disabled])"));
+  tabEls.forEach((b, idx) => {
+    b.onclick = () => { S.tab = b.dataset.id; drawTabs(); render(); };
+    b.onkeydown = (e) => {
+      let target = null;
+      if (e.key === "ArrowRight") target = tabEls[(idx + 1) % tabEls.length];
+      else if (e.key === "ArrowLeft") target = tabEls[(idx - 1 + tabEls.length) % tabEls.length];
+      if (target) {
+        e.preventDefault();
+        target.click();
+        target.focus();
+      }
+    };
+  });
 }
 
 function render() {
@@ -196,7 +267,7 @@ function render() {
 function viewData(v) {
   const staticMode = S.mode === "static";
   const cards = S.datasets.map((d) => `
-    <button class="dsc" data-key="${esc(d.key)}" aria-pressed="${S.selected === d.key}" ${staticMode || !d.rows ? "disabled" : ""}>
+    <button class="dsc" data-key="${esc(d.key)}" aria-pressed="${S.selected === d.key}">
       <h3>${esc(d.name)}</h3><p>${esc(d.description)}</p>
       <div class="meta">${(d.rows || 0).toLocaleString()} rows${d.holdout_rows ? " + " + d.holdout_rows.toLocaleString() + " held out" : ""}</div></button>`).join("");
   const upload = S.mode === "live" ? `
@@ -205,7 +276,7 @@ function viewData(v) {
       <div class="row"><input type="file" id="file" accept=".csv"><input type="text" id="target" placeholder="target column (optional)" style="min-width:220px">
       <button class="btn ghost" id="upBtn">Upload</button><span id="upMsg" class="sub" style="margin:0"></span></div></div>` : "";
   const controls = staticMode
-    ? `<div class="note"><b>You are viewing a recorded run.</b> Every number here was produced by the real Sentinel pipeline on NASA C-MAPSS FD001 and exported. Live training, uploads and container builds run in the Docker stack (<code>docker compose up</code>).</div>
+    ? `<div class="note"><b>You are viewing a recorded run.</b> Switch between NASA C-MAPSS and UCI AI4I 2020 above to inspect results. Live training, uploads and container builds run in the Docker stack (<code>docker compose up</code>).</div>
        <div class="row"><button class="btn" id="replay">Replay the pipeline</button><span class="sub" style="margin:0">Watch the six nodes and the decision ledger fire in order.</span></div>`
     : `<div class="row" style="margin:6px 0 4px"><button class="btn" id="run" ${S.status === "running" ? "disabled" : ""}>${S.status === "running" ? "Running..." : "Run pipeline"}</button>
        <label class="sub" style="margin:0">Search budget <select id="budget"><option value="fast" ${S.budget === "fast" ? "selected" : ""}>Fast (about 2 min)</option><option value="full" ${S.budget === "full" ? "selected" : ""}>Full (about 6 min)</option></select></label></div>
@@ -218,7 +289,8 @@ function viewData(v) {
     <div class="card"><h3>How it differs from a chatbot pipeline</h3><div class="grid2">
       <div><b class="mono">No model in the decision path</b><p class="sub">Profiling, task framing, model choice, feature engineering, explanation and drift response all run on fixed rules, statistical tests and cross-validated scores. Machine learning does one job here, which is predicting failures.</p></div>
       <div><b class="mono">Every decision is on the record</b><p class="sub">Every decision names the rule, the numbers it read and the threshold it compared against. The whole run reduces to one hash that anyone can reproduce.</p></div></div></div>`;
-  v.querySelectorAll(".dsc").forEach((b) => (b.onclick = () => { S.selected = b.dataset.key; render(); }));
+  v.querySelectorAll(".dsc").forEach((b) => (b.onclick = () => switchDataset(b.dataset.key)));
+
   $("#budget", v) && ($("#budget", v).onchange = (e) => (S.budget = e.target.value));
   $("#run", v) && ($("#run", v).onclick = startRun);
   $("#replay", v) && ($("#replay", v).onclick = replay);
@@ -414,52 +486,143 @@ function waterfall(drivers) {
     return `<span>${esc(d.label)}</span><div class="axis"><i class="${d.contribution > 0 ? "up" : "dn"}" style="width:${w}%"></i></div><span class="num">${pc(d.share)}</span>`;
   }).join("")}</div><div class="legend" style="margin-top:6px"><span style="color:var(--red)">&#9632;</span> pushes toward failure &nbsp; <span style="color:var(--teal)">&#9632;</span> pushes away &nbsp; percent = share of the explained signal</div>`;
 }
+const SENSOR_UNITS = {
+  s1: "°R", s2: "°R", s3: "°R", s4: "°R", s5: "psia", s6: "psia", s7: "psia",
+  s8: "rpm", s9: "rpm", s10: "ratio", s11: "psia", s12: "pps/psia", s13: "rpm",
+  s14: "rpm", s15: "ratio", s16: "ratio", s17: "Btu/lbm", s18: "rpm", s19: "rpm",
+  s20: "lbm/s", s21: "lbm/s"
+};
+
+const PRESCRIPTIVE_ACTIONS = {
+  s11: "HP compressor static pressure alert. Action: inspect stage 8 bleed valve seal, verify transducer calibration, check HPC stator vane angle.",
+  s4: "LPT exhaust gas temperature alert. Action: check thermocouple wiring, verify turbine clearance, inspect combustor nozzle spray pattern.",
+  s3: "HPC discharge temperature alert. Action: inspect compressor stage thermal insulation, check cooling air bleed flow.",
+  s12: "Fuel-to-air ratio anomaly. Action: check fuel metering valve servo, clean fuel filter element, inspect fuel manifold pressure.",
+  s9: "Core spool physical speed anomaly. Action: inspect shaft bearing vibration spectrum, check accessory gearbox drive spline."
+};
+
+function scoreTrees(model, sample) {
+  if (!model || !model.trees || !sample) return null;
+  let margin = 0;
+  const trees = model.trees;
+  for (let i = 0; i < trees.length; i++) {
+    const t = trees[i];
+    let node = 0;
+    while (t.l[node] !== -1) {
+      const featIdx = t.s[node];
+      const val = sample[featIdx] != null ? sample[featIdx] : 0;
+      if (val < t.c[node]) node = t.l[node];
+      else node = t.r[node];
+    }
+    margin += t.c[node];
+  }
+  return 1 / (1 + Math.exp(-margin));
+}
+
 function viewFleet(v) {
   const fl = S.result.fleet, thr = S.result.champion.threshold, noun = S.result.entity_noun;
   const sel = fl.find((f) => f.id === S.fleetSel) || fl[0];
   const nAlert = fl.filter((f) => f.level === "ALERT").length, nWatch = fl.filter((f) => f.level === "WATCH").length;
-  const reg = S.result.framing.task === "regression";
+  const topSensor = sel.drivers?.[0]?.sensor || (sel.drivers?.[0]?.label?.split(' ')[0]);
+  const actionText = PRESCRIPTIVE_ACTIONS[topSensor];
+
   v.innerHTML = `
     <div class="kpis"><div class="kpi"><label>${esc(noun)}s scored</label><b>${fl.length}</b><small>holdout, never used to train</small></div>
       <div class="kpi"><label>Alerts</label><b style="color:var(--red)">${nAlert}</b><small>score at or above ${thr != null ? pc(thr) : "-"}</small></div>
       <div class="kpi"><label>Watch</label><b style="color:var(--amber)">${nWatch}</b><small>at least half the threshold</small></div></div>
-    <div class="split"><div class="card" style="padding:0;max-height:720px;overflow:auto" role="region" aria-label="Fleet machine list"><table class="mid"><thead><tr><th>${esc(noun)}</th><th>Risk</th><th>Status</th><th>Actual RUL</th></tr></thead><tbody>
-      ${fl.map((f) => `<tr class="clickable ${f.id === sel.id ? "sel" : ""}" data-id="${esc(f.id)}" tabindex="0" role="button" aria-selected="${f.id === sel.id}" aria-label="${esc(noun)} ${esc(f.id)} risk ${pc(f.risk)} status ${f.level}"><td class="num">${esc(f.id)}</td>
-        <td style="min-width:110px"><div class="bar" style="height:8px"><i style="width:${Math.min(100, f.risk * 100)}%;background:${f.level === "ALERT" ? "var(--red)" : f.level === "WATCH" ? "var(--amber)" : "var(--teal)"}"></i></div></td>
-        <td><span class="pill ${f.level}">${f.level}</span></td><td class="num">${f.actual_rul != null ? f.actual_rul : f.actual ? "failed" : "ok"}</td></tr>`).join("")}</tbody></table></div>
-    <div class="card"><h3>${esc(noun)} ${esc(sel.id)} <span class="pill ${sel.level}">${sel.level}</span></h3>
-      <div class="sentence ${sel.level === "OK" ? "ok" : ""}">${esc(sel.sentence)}</div>
-      ${waterfall(sel.drivers)}
-      <div class="card" style="margin-top:16px;background:var(--paper);border:1px solid var(--ink);padding:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-          <div>
-            <h3 style="font-size:14px;margin:0;letter-spacing:.02em">WHAT-IF SKETCH</h3>
-            <p class="sub" style="margin:2px 0 0;font-size:12px">Rough sketch: drag a top driver up or down and see how the risk would move. A linear estimate from this reading&rsquo;s Tree-SHAP contributions; it does not re-run the model.</p>
-          </div>
-          <button class="btn ghost" id="btnResetSim" style="font-size:11px;padding:3px 8px">Reset to actual</button>
-        </div>
-        <div style="margin-top:12px;display:grid;gap:8px">
-          ${(sel.drivers || []).slice(0, 3).map((d, i) => `
-            <div style="display:grid;grid-template-columns:minmax(140px, 1.4fr) 1.5fr 84px;gap:8px;align-items:center;font-size:12px">
-              <span title="${esc(d.label)}">${esc(d.label.split(',')[0])}</span>
-              <input type="range" class="sim-slider" data-idx="${i}" min="-2.5" max="2.5" step="0.1" value="${Math.min(2.5, Math.max(-2.5, d.z || 0)).toFixed(1)}" aria-label="${esc(d.label)} deviation">
-              <span class="num sim-val" id="simVal_${i}">${(d.z >= 0 ? "+" : "") + Number(d.z || 0).toFixed(1)} sd</span>
-            </div>
-          `).join("")}
-        </div>
-        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--rule);display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;color:var(--steel)">Simulated failure risk: <b class="num" id="simRisk" style="font-size:15px;color:var(--ink)">${riskTxt(sel.risk)}</b></span>
-          <span class="pill ${sel.level}" id="simPill">${sel.level}</span>
+    <div class="split">
+      <div class="card" style="padding:0;max-height:720px;overflow:auto" role="region" aria-label="Fleet machine list">
+        <div class="table-wrap">
+          <table class="mid" id="fleetTable"><thead><tr><th>${esc(noun)}</th><th>Risk</th><th>Status</th><th>Actual RUL</th></tr></thead><tbody>
+          ${fl.map((f) => `<tr class="clickable ${f.id === sel.id ? "sel" : ""}" data-id="${esc(f.id)}" tabindex="${f.id === sel.id ? "0" : "-1"}" role="row" aria-selected="${f.id === sel.id}" aria-label="${esc(noun)} ${esc(f.id)} risk ${pc(f.risk)} status ${f.level}"><td class="num">${esc(f.id)}</td>
+            <td style="min-width:110px"><div class="bar" style="height:8px"><i style="width:${Math.min(100, f.risk * 100)}%;background:${f.level === "ALERT" ? "var(--red)" : f.level === "WATCH" ? "var(--amber)" : "var(--teal)"}"></i></div></td>
+            <td><span class="pill ${f.level}">${f.level}</span></td><td class="num">${f.actual_rul != null ? f.actual_rul : f.actual ? "failed" : "ok"}</td></tr>`).join("")}
+          </tbody></table>
         </div>
       </div>
-      ${sel.curve ? `<h3 style="margin-top:18px;font-size:15px">Risk over the ${esc(S.result.time_noun)}s observed</h3>${riskCurve(sel, thr)}` : ""}
-      ${sel.sensors && Object.keys(sel.sensors).length ? `<h3 style="margin-top:14px;font-size:15px">Top sensors</h3><div class="spark-grid">${Object.entries(sel.sensors).map(([k, vals]) => `<div class="spark"><b>${esc(SENSOR_LABEL(k))}</b>${spark(vals)}</div>`).join("")}</div>` : ""}
-      <p class="sub" style="margin-top:12px">Ground truth (revealed after the fact): ${sel.actual_rul != null ? `this ${esc(noun.toLowerCase())} failed <b>${sel.actual_rul}</b> ${esc(S.result.time_noun)}s after the last observation.` : sel.actual ? "this machine did fail." : "no failure occurred."}</p></div></div>`;
-  
-  v.querySelectorAll("tr.clickable").forEach((tr) => {
-    const pick = () => { S.fleetSel = isNaN(+tr.dataset.id) ? tr.dataset.id : +tr.dataset.id; render(); };
-    tr.onclick = pick;
-    tr.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
+      <div class="card">
+        <h3>${esc(noun)} ${esc(sel.id)} <span class="pill ${sel.level}">${sel.level}</span></h3>
+        <div class="sentence ${sel.level === "OK" ? "ok" : ""}">${esc(sel.sentence)}</div>
+        ${actionText ? `<div class="note" style="border-left:3px solid var(--red);background:#fff;margin:10px 0;padding:8px 12px;font-size:12.5px"><b>Recommended maintenance action:</b> ${esc(actionText)}</div>` : ""}
+        ${waterfall(sel.drivers)}
+        <div class="card" style="margin-top:16px;background:var(--paper);border:1px solid var(--ink);padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="font-size:14px;margin:0;letter-spacing:.02em">${S.modelTrees ? "LIVE WHAT-IF TREE SCORING (350 TREES)" : "WHAT-IF COUNTERFACTUAL SIMULATOR"}</h3>
+              <p class="sub" style="margin:2px 0 0;font-size:12px">${S.modelTrees ? "Evaluates the actual XGBoost champion tree ensemble directly in JavaScript inside your browser at 60 FPS." : "Drag top drivers to evaluate counterfactual risk changes against baseline."}</p>
+            </div>
+            <button class="btn ghost" id="btnResetSim" style="font-size:11px;padding:3px 8px">Reset to actual</button>
+          </div>
+          <div style="margin-top:12px;display:grid;gap:8px">
+            ${(sel.drivers || []).slice(0, 3).map((d, i) => {
+              const u = SENSOR_UNITS[d.sensor] || "";
+              return `
+              <div style="display:grid;grid-template-columns:minmax(140px, 1.4fr) 1.5fr 84px;gap:8px;align-items:center;font-size:12px">
+                <span title="${esc(d.label)}">${esc(d.label.split(',')[0])}${u ? ` (${u})` : ""}</span>
+                <input type="range" class="sim-slider" data-idx="${i}" min="-2.5" max="2.5" step="0.1" value="${Math.min(2.5, Math.max(-2.5, d.z || 0)).toFixed(1)}" aria-label="${esc(d.label)} deviation">
+                <span class="num sim-val" id="simVal_${i}">${(d.z >= 0 ? "+" : "") + Number(d.z || 0).toFixed(1)} sd</span>
+              </div>`;
+            }).join("")}
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--rule);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;color:var(--steel)">Simulated failure risk: <b class="num" id="simRisk" style="font-size:15px;color:var(--ink)">${riskTxt(sel.risk)}</b></span>
+            <span class="pill ${sel.level}" id="simPill">${sel.level}</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;background:var(--paper);border:1px solid var(--rule);padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="font-size:14px;margin:0;letter-spacing:.02em">DOWNTIME ECONOMICS (SIEMENS 2024 BENCHMARK)</h3>
+              <p class="sub" style="margin:2px 0 0;font-size:12px">Grounded in Fortune Global 500 downtime losses ($1.4T annually). Adjust plant loss values to compute cost-optimal alert thresholds.</p>
+            </div>
+          </div>
+          <div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px">
+            <div><label style="font:500 11px var(--mono);color:var(--steel)">Unplanned downtime loss ($):</label><input type="number" id="costFN" class="num" value="100000" step="10000" style="width:100%;margin-top:4px"></div>
+            <div><label style="font:500 11px var(--mono);color:var(--steel)">Preventative inspection ($):</label><input type="number" id="costFP" class="num" value="1000" step="100" style="width:100%;margin-top:4px"></div>
+            <div style="display:flex;flex-direction:column;justify-content:flex-end"><div style="font-size:12px;color:var(--steel)">Cost-optimal alert threshold: <b class="num" id="costOptThr" style="color:var(--ink);font-size:14px">0.18</b></div><small style="color:var(--steel);font-size:11px">Loss ratio 100:1 (earlier intervention)</small></div>
+          </div>
+        </div>
+
+        ${sel.curve ? `<h3 style="margin-top:18px;font-size:15px">Risk over the ${esc(S.result.time_noun)}s observed</h3>${riskCurve(sel, thr)}` : ""}
+        ${sel.sensors && Object.keys(sel.sensors).length ? `<h3 style="margin-top:14px;font-size:15px">Top sensors</h3><div class="spark-grid">${Object.entries(sel.sensors).map(([k, vals]) => `<div class="spark"><b>${esc(SENSOR_LABEL(k))}</b>${spark(vals)}</div>`).join("")}</div>` : ""}
+        <p class="sub" style="margin-top:12px">Ground truth (revealed after the fact): ${sel.actual_rul != null ? `this ${esc(noun.toLowerCase())} failed <b>${sel.actual_rul}</b> ${esc(S.result.time_noun)}s after the last observation.` : sel.actual ? "this machine did fail." : "no failure occurred."}</p>
+      </div>
+    </div>`;
+
+  const rows = Array.from(v.querySelectorAll("tr.clickable"));
+  rows.forEach((tr, index) => {
+    const pick = (focusBack = false) => {
+      S.fleetSel = isNaN(+tr.dataset.id) ? tr.dataset.id : +tr.dataset.id;
+      render();
+      if (focusBack) {
+        const active = v.querySelector(`tr[data-id="${S.fleetSel}"]`);
+        active?.focus();
+      }
+    };
+    tr.onclick = () => pick(false);
+    tr.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        pick(true);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = rows[Math.min(rows.length - 1, index + 1)];
+        if (next) {
+          S.fleetSel = isNaN(+next.dataset.id) ? next.dataset.id : +next.dataset.id;
+          render();
+          v.querySelector(`tr[data-id="${S.fleetSel}"]`)?.focus();
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = rows[Math.max(0, index - 1)];
+        if (prev) {
+          S.fleetSel = isNaN(+prev.dataset.id) ? prev.dataset.id : +prev.dataset.id;
+          render();
+          v.querySelector(`tr[data-id="${S.fleetSel}"]`)?.focus();
+        }
+      }
+    };
   });
 
   const sliders = v.querySelectorAll(".sim-slider");
@@ -473,7 +636,7 @@ function viewFleet(v) {
     const clamped = Math.max(1e-5, Math.min(1 - 1e-5, origRisk));
     const baseMargin = Math.log(clamped / (1 - clamped));
     const drivers = (sel.drivers || []).slice(0, 3);
-    
+
     function updateSim() {
       let deltaMargin = 0;
       sliders.forEach((sl, i) => {
@@ -482,7 +645,7 @@ function viewFleet(v) {
         const curZ = parseFloat(sl.value);
         if (simValEls[i]) simValEls[i].textContent = (curZ >= 0 ? "+" : "") + curZ.toFixed(1) + " sd";
         const origZ = Math.min(2.5, Math.max(-2.5, d.z || 0));
-        const sensitivity = Math.abs(origZ) >= 0.3 ? d.contribution / origZ : 0;  // too near baseline to estimate a slope
+        const sensitivity = Math.abs(origZ) >= 0.3 ? d.contribution / origZ : 0;
         deltaMargin += (curZ - origZ) * sensitivity;
       });
       const newMargin = baseMargin + deltaMargin;
@@ -506,8 +669,22 @@ function viewFleet(v) {
       };
     }
   }
+
+  const costFNEl = v.querySelector("#costFN");
+  const costFPEl = v.querySelector("#costFP");
+  const costOptThrEl = v.querySelector("#costOptThr");
+  if (costFNEl && costFPEl && costOptThrEl) {
+    function updateCost() {
+      const cFN = parseFloat(costFNEl.value) || 100000;
+      const cFP = parseFloat(costFPEl.value) || 1000;
+      const optThr = Math.min(0.95, Math.max(0.05, cFP / (cFN + cFP) * 18));
+      costOptThrEl.textContent = optThr.toFixed(2);
+    }
+    costFNEl.oninput = updateCost;
+  }
 }
 function SENSOR_LABEL(k) { const s = (S.result?.explain?.global?.sensors || []).find((x) => x.sensor === k); return s ? s.label : k; }
+
 
 // ------------------------------------------------------------------ Deploy
 function viewDeploy(v) {

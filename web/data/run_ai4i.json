@@ -1,0 +1,4245 @@
+{
+  "run_id": "run-619a8a6c01",
+  "run_hash": "619a8a6c0147ffcfa9bca83e255d35255678aa1e95e47afe9e9d55186597aaf5",
+  "dataset": {
+    "key": "ai4i",
+    "name": "UCI AI4I 2020 milling machine failures",
+    "description": "10,000 rows of milling-machine process data with a rare (3.4%) machine-failure label. Contains identifier columns and five failure-mode flags that leak the target; the Data Steward has to catch both.",
+    "rows": 8000,
+    "columns": 14,
+    "holdout_rows": 2000,
+    "meta": {
+      "source": "UCI Machine Learning Repository #601",
+      "entity_col": null,
+      "time_col": null,
+      "target_col": "Machine failure"
+    }
+  },
+  "options": {
+    "dataset": "ai4i",
+    "budget": "fast",
+    "task": "auto",
+    "target": null,
+    "horizon": null,
+    "config": {
+      "BUDGETS": {
+        "fast": {
+          "lightgbm": 6,
+          "xgboost": 6,
+          "random_forest": 3,
+          "linear": 3
+        },
+        "full": {
+          "lightgbm": 20,
+          "xgboost": 20,
+          "random_forest": 8,
+          "linear": 6
+        }
+      },
+      "COLLINEAR_R": 0.95,
+      "CV_FOLDS": 5,
+      "DUPLICATE_WARN": 0.01,
+      "HIGH_CARDINALITY": 50,
+      "HORIZON_FRACTION": 0.15,
+      "IMBALANCE_FAIL": 0.005,
+      "IMBALANCE_METRIC_SWITCH": 0.1,
+      "IMBALANCE_WARN": 0.1,
+      "KS_ALPHA": 0.01,
+      "KS_D_DRIFT": 0.2,
+      "LAG_DIFF": 5,
+      "LEAKAGE_PRECISION": 0.98,
+      "LEAKAGE_SUPPORT": 10,
+      "MIN_ROWS_FAIL": 100,
+      "MIN_ROWS_WARN": 1000,
+      "MISSING_FAIL": 0.3,
+      "MISSING_WARN": 0.05,
+      "MONITOR_WINDOW": 50,
+      "N_JOBS": 4,
+      "PSI_BINS": 10,
+      "PSI_RETRAIN": 0.25,
+      "PSI_WATCH": 0.1,
+      "ROLL_MEAN": 5,
+      "ROLL_SLOPE": 10,
+      "ROLL_STD": 5,
+      "SEED": 42,
+      "VIF_WARN": 10.0
+    }
+  },
+  "scorecard": {
+    "checks": [
+      {
+        "id": "rows",
+        "label": "Sample size",
+        "status": "pass",
+        "value": 8000,
+        "threshold": ">= 1000 (fail < 100)",
+        "detail": "8,000 rows x 14 columns"
+      },
+      {
+        "id": "missing",
+        "label": "Missing values",
+        "status": "pass",
+        "value": 0.0,
+        "threshold": "<= 5% per column (fail > 30%)",
+        "detail": "no column above threshold"
+      },
+      {
+        "id": "duplicates",
+        "label": "Duplicate rows",
+        "status": "pass",
+        "value": 0.0,
+        "threshold": "<= 1%",
+        "detail": "0 duplicate rows"
+      },
+      {
+        "id": "constant",
+        "label": "Constant columns",
+        "status": "pass",
+        "value": 0,
+        "threshold": "0",
+        "detail": "none"
+      },
+      {
+        "id": "identifiers",
+        "label": "Identifier columns",
+        "status": "warn",
+        "value": 2,
+        "threshold": "0",
+        "detail": "dropped: UDI, Product ID"
+      },
+      {
+        "id": "structure",
+        "label": "Time-series structure",
+        "status": "pass",
+        "value": "tabular",
+        "threshold": "n/a",
+        "detail": "no entity/time counter found: treated as independent rows"
+      },
+      {
+        "id": "collinearity",
+        "label": "Multicollinearity",
+        "status": "pass",
+        "value": 5.26,
+        "threshold": "|r| < 0.95, VIF <= 10",
+        "detail": "0 pairs with |r| >= 0.95; max VIF 5.3 (Torque [Nm]). Tree models tolerate this, so it is reported, not blocking."
+      },
+      {
+        "id": "stationarity",
+        "label": "Distribution shift (KS test)",
+        "status": "pass",
+        "value": "1/10",
+        "threshold": "D >= 0.2, p < 0.01",
+        "detail": "first half vs second half of rows: 1 of 10 features shift (Process temperature [K] (D=0.32))"
+      },
+      {
+        "id": "target_missing",
+        "label": "Target completeness",
+        "status": "pass",
+        "value": 0.0,
+        "threshold": "0",
+        "detail": "target has no missing values"
+      },
+      {
+        "id": "imbalance",
+        "label": "Class balance",
+        "status": "warn",
+        "value": 0.0348,
+        "threshold": ">= 10% (fail < 0.5%)",
+        "detail": "minority class = 3.48% of rows; ranking metric switches to average precision and classes are weighted"
+      },
+      {
+        "id": "leakage",
+        "label": "Target-leakage guard",
+        "status": "warn",
+        "value": 4,
+        "threshold": "P(target | flag) < 98%",
+        "detail": "dropped: TWF (100%), HDF (100%), PWF (100%), OSF (100%)"
+      }
+    ],
+    "counts": {
+      "pass": 8,
+      "warn": 3,
+      "fail": 0
+    },
+    "passed": true,
+    "score": 86,
+    "verdict": "PASS WITH WARNINGS"
+  },
+  "framing": {
+    "task": "classification",
+    "target_col": "Machine failure",
+    "derived": false,
+    "entity_col": null,
+    "time_col": null,
+    "horizon": null,
+    "metric": "average_precision",
+    "class_weight": true,
+    "candidates": [
+      "lightgbm",
+      "xgboost",
+      "random_forest",
+      "linear"
+    ]
+  },
+  "decisions": [
+    {
+      "node": "data_steward",
+      "rule": "DROP_COLUMN",
+      "inputs": {
+        "columns": "UDI, Product ID"
+      },
+      "outcome": "UDI, Product ID: one unique value per row (row identifier)"
+    },
+    {
+      "node": "task_selector",
+      "rule": "TARGET_TYPE",
+      "inputs": {
+        "target": "Machine failure",
+        "unique_values": 2
+      },
+      "outcome": "binary target -> classification"
+    },
+    {
+      "node": "task_selector",
+      "rule": "HOLDOUT_SPLIT",
+      "inputs": {
+        "source": "dataset"
+      },
+      "outcome": "the dataset ships an official holdout; it is never used for model selection"
+    },
+    {
+      "node": "task_selector",
+      "rule": "RANKING_METRIC",
+      "inputs": {
+        "minority_share": 0.0348
+      },
+      "outcome": "minority class below 10% -> rank by cross-validated average precision (ROC-AUC is optimistic when positives are rare)",
+      "threshold": 0.1
+    },
+    {
+      "node": "task_selector",
+      "rule": "CLASS_WEIGHTING",
+      "inputs": {
+        "minority_share": 0.0348
+      },
+      "outcome": "minority class below 30% -> balanced class weights on every candidate",
+      "threshold": 0.3
+    },
+    {
+      "node": "task_selector",
+      "rule": "CANDIDATE_SET",
+      "inputs": {
+        "task": "classification"
+      },
+      "outcome": "fixed search space: LightGBM, XGBoost, Random Forest, Linear baseline"
+    },
+    {
+      "node": "task_selector",
+      "rule": "DROP_COLUMN",
+      "inputs": {
+        "columns": "TWF"
+      },
+      "outcome": "TWF: target leakage: P(target=1 | TWF=1) = 100% over 35 rows"
+    },
+    {
+      "node": "task_selector",
+      "rule": "DROP_COLUMN",
+      "inputs": {
+        "columns": "HDF"
+      },
+      "outcome": "HDF: target leakage: P(target=1 | HDF=1) = 100% over 98 rows"
+    },
+    {
+      "node": "task_selector",
+      "rule": "DROP_COLUMN",
+      "inputs": {
+        "columns": "PWF"
+      },
+      "outcome": "PWF: target leakage: P(target=1 | PWF=1) = 100% over 75 rows"
+    },
+    {
+      "node": "task_selector",
+      "rule": "DROP_COLUMN",
+      "inputs": {
+        "columns": "OSF"
+      },
+      "outcome": "OSF: target leakage: P(target=1 | OSF=1) = 100% over 80 rows"
+    },
+    {
+      "node": "feature_engineer",
+      "rule": "FEATURE_SET",
+      "inputs": {
+        "features": 9,
+        "rows": 8000
+      },
+      "outcome": "6 numeric + 3 one-hot categorical = 9 features"
+    },
+    {
+      "node": "trainer",
+      "rule": "CHAMPION",
+      "inputs": {
+        "metric": "average_precision",
+        "cv_mean": 0.81631,
+        "cv_std": 0.06267,
+        "runner_up": "XGBoost",
+        "runner_up_cv": 0.79658
+      },
+      "outcome": "LightGBM ranks first on cross-validated average_precision (higher is better): the numbers picked it, and the holdout was not consulted"
+    },
+    {
+      "node": "trainer",
+      "rule": "ALERT_THRESHOLD",
+      "inputs": {
+        "threshold": 0.4309,
+        "oof_f1": 0.7606
+      },
+      "outcome": "alert threshold = the out-of-fold score that maximises F1"
+    },
+    {
+      "node": "explainer",
+      "rule": "EXPLAINER",
+      "inputs": {
+        "method": "Tree-SHAP",
+        "rows_explained": 3000
+      },
+      "outcome": "global importance from 3000 training rows; top driver: Torque [Nm] (23%)"
+    },
+    {
+      "node": "explainer",
+      "rule": "SHAP_PARITY",
+      "inputs": {
+        "max_abs_diff": 0.0,
+        "rows": 400
+      },
+      "outcome": "native Tree-SHAP equals shap.TreeExplainer to within 0.0e+00 on 400 rows"
+    },
+    {
+      "node": "deployer_monitor",
+      "rule": "REGISTER",
+      "inputs": {
+        "model": "sentinel-ai4i"
+      },
+      "outcome": "champion logged to MLflow and registered as sentinel-ai4i (alias: champion)"
+    },
+    {
+      "node": "deployer_monitor",
+      "rule": "PACKAGE",
+      "inputs": {
+        "folder": "serving",
+        "family": "lightgbm"
+      },
+      "outcome": "versioned FastAPI service generated with the same features.py and Tree-SHAP code used in training"
+    },
+    {
+      "node": "deployer_monitor",
+      "rule": "SERVING_PARITY",
+      "inputs": {
+        "max_abs_diff": 0.0,
+        "entities": 5
+      },
+      "outcome": "service reproduces the trained model's scores"
+    },
+    {
+      "node": "deployer_monitor",
+      "rule": "MONITOR_ARMED",
+      "inputs": {
+        "psi_watch": 0.1,
+        "psi_retrain": 0.25
+      },
+      "outcome": "drift monitor armed on 5 feature distributions (early-life window, 50 rows); retrain rule: any top-10 feature PSI >= 0.25"
+    }
+  ],
+  "leaderboard": [
+    {
+      "family": "lightgbm",
+      "name": "LightGBM",
+      "params": {
+        "n_estimators": 400,
+        "learning_rate": 0.079826,
+        "num_leaves": 48,
+        "min_child_samples": 11,
+        "subsample": 0.987964,
+        "colsample_bytree": 0.916221,
+        "reg_lambda": 0.007069
+      },
+      "n_trials": 6,
+      "cv_mean": 0.816308,
+      "cv_std": 0.062672,
+      "cv_folds": [
+        0.726792,
+        0.858799,
+        0.892504,
+        0.844085,
+        0.759363
+      ],
+      "metric": "average_precision",
+      "fit_seconds": 4.4,
+      "oof_threshold": 0.430909,
+      "oof_f1": 0.760618,
+      "rank": 1,
+      "holdout": {
+        "all_rows": {
+          "roc_auc": 0.97533,
+          "average_precision": 0.788744,
+          "f1": 0.77193
+        },
+        "final_obs": {}
+      }
+    },
+    {
+      "family": "xgboost",
+      "name": "XGBoost",
+      "params": {
+        "n_estimators": 400,
+        "learning_rate": 0.079826,
+        "max_depth": 7,
+        "min_child_weight": 1,
+        "subsample": 0.987964,
+        "colsample_bytree": 0.916221,
+        "reg_lambda": 0.007069
+      },
+      "n_trials": 6,
+      "cv_mean": 0.796582,
+      "cv_std": 0.070282,
+      "cv_folds": [
+        0.727547,
+        0.890843,
+        0.834916,
+        0.826273,
+        0.703329
+      ],
+      "metric": "average_precision",
+      "fit_seconds": 3.8,
+      "oof_threshold": 0.692765,
+      "oof_f1": 0.72973,
+      "rank": 2,
+      "holdout": {
+        "all_rows": {
+          "roc_auc": 0.966841,
+          "average_precision": 0.794617,
+          "f1": 0.741379
+        },
+        "final_obs": {}
+      }
+    },
+    {
+      "family": "random_forest",
+      "name": "Random Forest",
+      "params": {
+        "n_estimators": 80,
+        "max_depth": 14,
+        "min_samples_leaf": 15,
+        "max_features": 0.219732,
+        "max_samples": 0.446806
+      },
+      "n_trials": 3,
+      "cv_mean": 0.518718,
+      "cv_std": 0.027172,
+      "cv_folds": [
+        0.491975,
+        0.567214,
+        0.516068,
+        0.494416,
+        0.52392
+      ],
+      "metric": "average_precision",
+      "fit_seconds": 4.6,
+      "oof_threshold": 0.613536,
+      "oof_f1": 0.511706,
+      "rank": 3,
+      "holdout": {
+        "all_rows": {
+          "roc_auc": 0.945007,
+          "average_precision": 0.424077,
+          "f1": 0.416
+        },
+        "final_obs": {}
+      }
+    },
+    {
+      "family": "linear",
+      "name": "Linear baseline",
+      "params": {
+        "C": 6.351221
+      },
+      "n_trials": 3,
+      "cv_mean": 0.434417,
+      "cv_std": 0.024308,
+      "cv_folds": [
+        0.427146,
+        0.482607,
+        0.418646,
+        0.424517,
+        0.419169
+      ],
+      "metric": "average_precision",
+      "fit_seconds": 0.3,
+      "oof_threshold": 0.869075,
+      "oof_f1": 0.438127,
+      "rank": 4,
+      "holdout": {
+        "all_rows": {
+          "roc_auc": 0.901014,
+          "average_precision": 0.428313,
+          "f1": 0.391608
+        },
+        "final_obs": {}
+      }
+    }
+  ],
+  "champion": {
+    "family": "lightgbm",
+    "name": "LightGBM",
+    "threshold": 0.430909
+  },
+  "explain": {
+    "global": {
+      "features": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "mean_abs": 1.366666,
+          "share": 0.225202
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "mean_abs": 1.345311,
+          "share": 0.221683
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "mean_abs": 1.194181,
+          "share": 0.196779
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "mean_abs": 1.029399,
+          "share": 0.169626
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "mean_abs": 0.764594,
+          "share": 0.125991
+        },
+        {
+          "feature": "Type=H",
+          "label": "Type = H",
+          "mean_abs": 0.146131,
+          "share": 0.02408
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "mean_abs": 0.133767,
+          "share": 0.022042
+        },
+        {
+          "feature": "Type=M",
+          "label": "Type = M",
+          "mean_abs": 0.083414,
+          "share": 0.013745
+        },
+        {
+          "feature": "RNF",
+          "label": "RNF",
+          "mean_abs": 0.005171,
+          "share": 0.000852
+        }
+      ],
+      "sensors": [
+        {
+          "sensor": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "share": 0.225202
+        },
+        {
+          "sensor": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "share": 0.221683
+        },
+        {
+          "sensor": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "share": 0.196779
+        },
+        {
+          "sensor": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "share": 0.169626
+        },
+        {
+          "sensor": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "share": 0.125991
+        },
+        {
+          "sensor": "Type",
+          "label": "Type",
+          "share": 0.059867
+        },
+        {
+          "sensor": "RNF",
+          "label": "RNF",
+          "share": 0.000852
+        }
+      ]
+    },
+    "parity": {
+      "checked": true,
+      "rows": 400,
+      "max_abs_diff": 0.0,
+      "shap_version": "0.52.0"
+    },
+    "reliability": [
+      {
+        "lo": 0.0,
+        "hi": 0.1,
+        "n": 7714,
+        "positive_rate": 0.008037
+      },
+      {
+        "lo": 0.1,
+        "hi": 0.2,
+        "n": 19,
+        "positive_rate": 0.263158
+      },
+      {
+        "lo": 0.2,
+        "hi": 0.3,
+        "n": 10,
+        "positive_rate": 0.3
+      },
+      {
+        "lo": 0.3,
+        "hi": 0.4,
+        "n": 11,
+        "positive_rate": 0.545455
+      },
+      {
+        "lo": 0.4,
+        "hi": 0.5,
+        "n": 8,
+        "positive_rate": 0.75
+      },
+      {
+        "lo": 0.5,
+        "hi": 0.6,
+        "n": 2,
+        "positive_rate": 0.0
+      },
+      {
+        "lo": 0.6,
+        "hi": 0.7,
+        "n": 14,
+        "positive_rate": 0.285714
+      },
+      {
+        "lo": 0.7,
+        "hi": 0.8,
+        "n": 5,
+        "positive_rate": 0.6
+      },
+      {
+        "lo": 0.8,
+        "hi": 0.9,
+        "n": 11,
+        "positive_rate": 0.545455
+      },
+      {
+        "lo": 0.9,
+        "hi": 1.0,
+        "n": 206,
+        "positive_rate": 0.88835
+      }
+    ]
+  },
+  "fleet": [
+    {
+      "id": 1497,
+      "risk": 1.0,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 69.4,
+          "z": 2.945543,
+          "contribution": 23.61504,
+          "share": 0.766452,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 189.0,
+          "z": 1.28013,
+          "contribution": 2.688451,
+          "share": 0.087257,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1268.0,
+          "z": -1.49946,
+          "contribution": 1.98394,
+          "share": 0.064391,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 298.0,
+          "z": -1.003909,
+          "contribution": -0.96475,
+          "share": 0.031312,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 308.7,
+          "z": -0.878697,
+          "contribution": 0.839613,
+          "share": 0.027251,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 1497 ALERT at row 312: failure risk >99%. Torque [Nm] well above baseline (+2.9 sd), 77% of the signal; Tool wear [min] above baseline (+1.3 sd), 9% of the signal; Rotational speed [rpm] below baseline (-1.5 sd), 6% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 312,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 249,
+      "risk": 0.999999,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 216.0,
+          "z": 1.707203,
+          "contribution": 14.01971,
+          "share": 0.460767,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 56.8,
+          "z": 1.682833,
+          "contribution": 8.971053,
+          "share": 0.294839,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1362.0,
+          "z": -0.978923,
+          "contribution": 2.846492,
+          "share": 0.093552,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 1.77399,
+          "share": 0.058303,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 298.0,
+          "z": -1.003909,
+          "contribution": -1.428041,
+          "share": 0.046933,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 249 ALERT at row 50: failure risk >99%. Tool wear [min] above baseline (+1.7 sd), 46% of the signal; Torque [Nm] above baseline (+1.7 sd), 29% of the signal; Rotational speed [rpm] below baseline (-1.0 sd), 9% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 50,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4255,
+      "risk": 0.999995,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 68.0,
+          "z": 2.805242,
+          "contribution": 16.67521,
+          "share": 0.589904,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.6,
+          "z": 1.29368,
+          "contribution": 4.654814,
+          "share": 0.164669,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1284.0,
+          "z": -1.410858,
+          "contribution": 4.323787,
+          "share": 0.152959,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 311.0,
+          "z": 0.668675,
+          "contribution": 1.480343,
+          "share": 0.052369,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 114.0,
+          "z": 0.093818,
+          "contribution": -0.912731,
+          "share": 0.032289,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4255 ALERT at row 857: failure risk >99%. Torque [Nm] well above baseline (+2.8 sd), 59% of the signal; Air temperature [K] above baseline (+1.3 sd), 16% of the signal; Rotational speed [rpm] below baseline (-1.4 sd), 15% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 857,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4303,
+      "risk": 0.999993,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 2695.0,
+          "z": 6.402733,
+          "contribution": 17.821621,
+          "share": 0.667799,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 12.6,
+          "z": -2.746677,
+          "contribution": 6.491472,
+          "share": 0.243244,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.1,
+          "z": 0.063182,
+          "contribution": 1.406447,
+          "share": 0.052701,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.7,
+          "z": 0.844151,
+          "contribution": 0.393359,
+          "share": 0.01474,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=M",
+          "label": "Type = M",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.214249,
+          "share": 0.008028,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4303 ALERT at row 862: failure risk >99%. Rotational speed [rpm] well above baseline (+6.4 sd), 67% of the signal; Torque [Nm] well below baseline (-2.7 sd), 24% of the signal; Process temperature [K] near baseline (+0.1 sd), 5% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 862,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 1145,
+      "risk": 0.999987,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 69.1,
+          "z": 2.915479,
+          "contribution": 23.954247,
+          "share": 0.834288,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1296.0,
+          "z": -1.344406,
+          "contribution": 2.390954,
+          "share": 0.083273,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 153.0,
+          "z": 0.7107,
+          "contribution": -1.327075,
+          "share": 0.04622,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 297.0,
+          "z": -1.503384,
+          "contribution": -0.371318,
+          "share": 0.012932,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 307.9,
+          "z": -1.416913,
+          "contribution": 0.349177,
+          "share": 0.012161,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 1145 ALERT at row 238: failure risk >99%. Torque [Nm] well above baseline (+2.9 sd), 83% of the signal; Rotational speed [rpm] below baseline (-1.3 sd), 8% of the signal; Tool wear [min] above baseline (+0.7 sd), 5% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 238,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 260,
+      "risk": 0.99998,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 63.9,
+          "z": 2.39436,
+          "contribution": 19.890951,
+          "share": 0.74729,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1420.0,
+          "z": -0.657741,
+          "contribution": 4.709223,
+          "share": 0.176922,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 308.2,
+          "z": -1.215082,
+          "contribution": 0.795616,
+          "share": 0.029891,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 298.1,
+          "z": -0.953961,
+          "contribution": -0.662709,
+          "share": 0.024898,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.208417,
+          "share": 0.00783,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 260 ALERT at row 53: failure risk >99%. Torque [Nm] well above baseline (+2.4 sd), 75% of the signal; Rotational speed [rpm] below baseline (-0.7 sd), 18% of the signal; Process temperature [K] below baseline (-1.2 sd), 3% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 53,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4186,
+      "risk": 0.99998,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1348.0,
+          "z": -1.05645,
+          "contribution": 8.902612,
+          "share": 0.358084,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.2,
+          "z": 1.093889,
+          "contribution": 8.330716,
+          "share": 0.335081,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.6,
+          "z": 0.399567,
+          "contribution": 6.018533,
+          "share": 0.242079,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 48.4,
+          "z": 0.841026,
+          "contribution": 1.188945,
+          "share": 0.047822,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 161.0,
+          "z": 0.83724,
+          "contribution": 0.208776,
+          "share": 0.008397,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 4186 ALERT at row 840: failure risk >99%. Rotational speed [rpm] below baseline (-1.1 sd), 36% of the signal; Air temperature [K] above baseline (+1.1 sd), 34% of the signal; Process temperature [K] near baseline (+0.4 sd), 24% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 840,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 1596,
+      "risk": 0.999978,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 218.0,
+          "z": 1.738838,
+          "contribution": 15.149248,
+          "share": 0.545337,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 52.9,
+          "z": 1.291994,
+          "contribution": 5.905362,
+          "share": 0.212579,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1365.0,
+          "z": -0.96231,
+          "contribution": 2.588388,
+          "share": 0.093176,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 298.0,
+          "z": -1.003909,
+          "contribution": -1.499685,
+          "share": 0.053985,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 1.283712,
+          "share": 0.046211,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 1596 ALERT at row 333: failure risk >99%. Tool wear [min] above baseline (+1.7 sd), 55% of the signal; Torque [Nm] above baseline (+1.3 sd), 21% of the signal; Rotational speed [rpm] below baseline (-1.0 sd), 9% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 333,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4072,
+      "risk": 0.999966,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 68.6,
+          "z": 2.865371,
+          "contribution": 18.987838,
+          "share": 0.756164,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1331.0,
+          "z": -1.150589,
+          "contribution": 4.093844,
+          "share": 0.163032,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.6,
+          "z": 0.399567,
+          "contribution": 0.82177,
+          "share": 0.032726,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.9,
+          "z": 0.944047,
+          "contribution": 0.689968,
+          "share": 0.027477,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 85.0,
+          "z": -0.36489,
+          "contribution": -0.382802,
+          "share": 0.015245,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4072 ALERT at row 816: failure risk >99%. Torque [Nm] well above baseline (+2.9 sd), 76% of the signal; Rotational speed [rpm] below baseline (-1.2 sd), 16% of the signal; Process temperature [K] near baseline (+0.4 sd), 3% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 816,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 9975,
+      "risk": 0.999964,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 68.2,
+          "z": 2.825285,
+          "contribution": 22.005852,
+          "share": 0.798556,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1361.0,
+          "z": -0.98446,
+          "contribution": 3.01396,
+          "share": 0.109372,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 172.0,
+          "z": 1.011233,
+          "contribution": -1.317734,
+          "share": 0.047818,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 308.2,
+          "z": -1.215082,
+          "contribution": 0.599803,
+          "share": 0.021766,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 298.6,
+          "z": -0.704223,
+          "contribution": -0.318705,
+          "share": 0.011565,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 9975 ALERT at row 1994: failure risk >99%. Torque [Nm] well above baseline (+2.8 sd), 80% of the signal; Rotational speed [rpm] below baseline (-1.0 sd), 11% of the signal; Tool wear [min] above baseline (+1.0 sd), 5% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 1994,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4082,
+      "risk": 0.999964,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1336.0,
+          "z": -1.122901,
+          "contribution": 7.382912,
+          "share": 0.287157,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.0,
+          "z": 0.993994,
+          "contribution": 6.889549,
+          "share": 0.267968,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.4,
+          "z": 0.265013,
+          "contribution": 5.938397,
+          "share": 0.230973,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 58.2,
+          "z": 1.823134,
+          "contribution": 4.375244,
+          "share": 0.170174,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 110.0,
+          "z": 0.030548,
+          "contribution": -0.714208,
+          "share": 0.027779,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4082 ALERT at row 819: failure risk >99%. Rotational speed [rpm] below baseline (-1.1 sd), 29% of the signal; Air temperature [K] above baseline (+1.0 sd), 27% of the signal; Process temperature [K] near baseline (+0.3 sd), 23% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 819,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 1096,
+      "risk": 0.999962,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 2721.0,
+          "z": 6.546711,
+          "contribution": 18.893026,
+          "share": 0.680668,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 9.3,
+          "z": -3.077387,
+          "contribution": 6.779888,
+          "share": 0.244262,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 18.0,
+          "z": -1.424663,
+          "contribution": -1.033288,
+          "share": 0.037227,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 296.9,
+          "z": -1.553332,
+          "contribution": -0.704627,
+          "share": 0.025386,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=H",
+          "label": "Type = H",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": 0.155755,
+          "share": 0.005611,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 1096 ALERT at row 227: failure risk >99%. Rotational speed [rpm] well above baseline (+6.5 sd), 68% of the signal; Torque [Nm] well below baseline (-3.1 sd), 24% of the signal; Tool wear [min] below baseline (-1.4 sd), 4% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 227,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4049,
+      "risk": 0.999961,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 2691.0,
+          "z": 6.380582,
+          "contribution": 17.961448,
+          "share": 0.715584,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 12.1,
+          "z": -2.796784,
+          "contribution": 6.357613,
+          "share": 0.253287,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=M",
+          "label": "Type = M",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.279218,
+          "share": 0.011124,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 31.0,
+          "z": -1.219035,
+          "contribution": -0.166235,
+          "share": 0.006623,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=H",
+          "label": "Type = H",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": 0.153227,
+          "share": 0.006105,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 4049 ALERT at row 811: failure risk >99%. Rotational speed [rpm] well above baseline (+6.4 sd), 72% of the signal; Torque [Nm] well below baseline (-2.8 sd), 25% of the signal; Type = M near baseline (+0.0 sd), 1% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 811,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4476,
+      "risk": 0.999961,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1351.0,
+          "z": -1.039837,
+          "contribution": 11.096231,
+          "share": 0.398092,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.7,
+          "z": 1.343627,
+          "contribution": 10.150682,
+          "share": 0.364169,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.5,
+          "z": 0.33229,
+          "contribution": 4.654367,
+          "share": 0.166981,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 41.8,
+          "z": 0.179606,
+          "contribution": -1.069126,
+          "share": 0.038356,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 10.0,
+          "z": -1.551203,
+          "contribution": -0.727755,
+          "share": 0.026109,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4476 ALERT at row 899: failure risk >99%. Rotational speed [rpm] below baseline (-1.0 sd), 40% of the signal; Air temperature [K] above baseline (+1.3 sd), 36% of the signal; Process temperature [K] near baseline (+0.3 sd), 17% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 899,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 9085,
+      "risk": 0.99996,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 75.4,
+          "z": 3.546834,
+          "contribution": 23.434328,
+          "share": 0.830735,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1326.0,
+          "z": -1.178277,
+          "contribution": 2.125999,
+          "share": 0.075366,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 172.0,
+          "z": 1.011233,
+          "contribution": -1.358035,
+          "share": 0.048142,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 297.2,
+          "z": -1.403489,
+          "contribution": -0.664819,
+          "share": 0.023568,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 307.9,
+          "z": -1.416913,
+          "contribution": 0.356568,
+          "share": 0.01264,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 9085 ALERT at row 1841: failure risk >99%. Torque [Nm] well above baseline (+3.5 sd), 83% of the signal; Rotational speed [rpm] below baseline (-1.2 sd), 8% of the signal; Tool wear [min] above baseline (+1.0 sd), 5% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 1841,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4343,
+      "risk": 0.999952,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 68.2,
+          "z": 2.825285,
+          "contribution": 16.818732,
+          "share": 0.654192,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1284.0,
+          "z": -1.410858,
+          "contribution": 3.609906,
+          "share": 0.140413,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.8,
+          "z": -0.13865,
+          "contribution": 2.589802,
+          "share": 0.100735,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.7,
+          "z": 0.844151,
+          "contribution": 1.787171,
+          "share": 0.069515,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 111.0,
+          "z": 0.046365,
+          "contribution": -0.453111,
+          "share": 0.017624,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4343 ALERT at row 871: failure risk >99%. Torque [Nm] well above baseline (+2.8 sd), 65% of the signal; Rotational speed [rpm] below baseline (-1.4 sd), 14% of the signal; Process temperature [K] near baseline (-0.1 sd), 10% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 871,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3001,
+      "risk": 0.999948,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 72.8,
+          "z": 3.286275,
+          "contribution": 22.096824,
+          "share": 0.754245,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1324.0,
+          "z": -1.189353,
+          "contribution": 2.545297,
+          "share": 0.08688,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.8,
+          "z": -0.13865,
+          "contribution": 1.854796,
+          "share": 0.063311,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 300.5,
+          "z": 0.244781,
+          "contribution": -1.462556,
+          "share": 0.049922,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 159.0,
+          "z": 0.805605,
+          "contribution": -0.946048,
+          "share": 0.032292,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 3001 ALERT at row 602: failure risk >99%. Torque [Nm] well above baseline (+3.3 sd), 75% of the signal; Rotational speed [rpm] below baseline (-1.2 sd), 9% of the signal; Process temperature [K] near baseline (-0.1 sd), 6% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 602,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4171,
+      "risk": 0.999938,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.2,
+          "z": 1.093889,
+          "contribution": 9.283356,
+          "share": 0.381771,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1355.0,
+          "z": -1.017686,
+          "contribution": 8.328279,
+          "share": 0.342494,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.6,
+          "z": 0.399567,
+          "contribution": 5.64613,
+          "share": 0.232193,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 51.5,
+          "z": 1.151692,
+          "contribution": 0.617756,
+          "share": 0.025405,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.253157,
+          "share": 0.010411,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4171 ALERT at row 838: failure risk >99%. Air temperature [K] above baseline (+1.1 sd), 38% of the signal; Rotational speed [rpm] below baseline (-1.0 sd), 34% of the signal; Process temperature [K] near baseline (+0.4 sd), 23% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 838,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 604,
+      "risk": 0.999874,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 71.6,
+          "z": 3.166017,
+          "contribution": 22.577096,
+          "share": 0.769466,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1336.0,
+          "z": -1.122901,
+          "contribution": 2.3925,
+          "share": 0.08154,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 297.9,
+          "z": -1.053856,
+          "contribution": -1.848198,
+          "share": 0.06299,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 31.0,
+          "z": -1.219035,
+          "contribution": -1.314268,
+          "share": 0.044793,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.8,
+          "z": -0.13865,
+          "contribution": 0.869738,
+          "share": 0.029642,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 604 ALERT at row 128: failure risk >99%. Torque [Nm] well above baseline (+3.2 sd), 77% of the signal; Rotational speed [rpm] below baseline (-1.1 sd), 8% of the signal; Air temperature [K] below baseline (-1.1 sd), 6% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 128,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 51,
+      "risk": 0.999864,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 2861.0,
+          "z": 7.321979,
+          "contribution": 18.278436,
+          "share": 0.687877,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 4.6,
+          "z": -3.548398,
+          "contribution": 6.233559,
+          "share": 0.234589,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.1,
+          "z": -0.609589,
+          "contribution": -1.168364,
+          "share": 0.043969,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 298.9,
+          "z": -0.554381,
+          "contribution": -0.339179,
+          "share": 0.012764,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 143.0,
+          "z": 0.552525,
+          "contribution": -0.159727,
+          "share": 0.006011,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 51 ALERT at row 18: failure risk >99%. Rotational speed [rpm] well above baseline (+7.3 sd), 69% of the signal; Torque [Nm] well below baseline (-3.5 sd), 23% of the signal; Process temperature [K] below baseline (-0.6 sd), 4% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 18,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 6256,
+      "risk": 0.999834,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 204.0,
+          "z": 1.517393,
+          "contribution": 9.620927,
+          "share": 0.419183,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 57.3,
+          "z": 1.73294,
+          "contribution": 8.215181,
+          "share": 0.357935,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1379.0,
+          "z": -0.884783,
+          "contribution": 2.801333,
+          "share": 0.122054,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 1.489198,
+          "share": 0.064884,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.0,
+          "z": 0.494518,
+          "contribution": 0.342267,
+          "share": 0.014913,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 6256 ALERT at row 1254: failure risk >99%. Tool wear [min] above baseline (+1.5 sd), 42% of the signal; Torque [Nm] above baseline (+1.7 sd), 36% of the signal; Rotational speed [rpm] below baseline (-0.9 sd), 12% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 1254,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 5400,
+      "risk": 0.999822,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 246.0,
+          "z": 2.181728,
+          "contribution": 16.030099,
+          "share": 0.611766,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 53.8,
+          "z": 1.382187,
+          "contribution": 6.268404,
+          "share": 0.239225,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.8,
+          "z": 1.393575,
+          "contribution": 1.97953,
+          "share": 0.075546,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.899223,
+          "share": 0.034318,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 312.4,
+          "z": 1.610553,
+          "contribution": -0.322196,
+          "share": 0.012296,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 5400 ALERT at row 1081: failure risk >99%. Tool wear [min] well above baseline (+2.2 sd), 61% of the signal; Torque [Nm] above baseline (+1.4 sd), 24% of the signal; Air temperature [K] above baseline (+1.4 sd), 8% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 1081,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4081,
+      "risk": 0.999782,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1357.0,
+          "z": -1.006611,
+          "contribution": 6.707334,
+          "share": 0.277401,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.0,
+          "z": 0.993994,
+          "contribution": 6.495192,
+          "share": 0.268627,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.4,
+          "z": 0.265013,
+          "contribution": 5.438687,
+          "share": 0.224933,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 58.0,
+          "z": 1.803091,
+          "contribution": 4.26249,
+          "share": 0.176288,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 108.0,
+          "z": -0.001087,
+          "contribution": -0.85352,
+          "share": 0.0353,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4081 ALERT at row 818: failure risk >99%. Rotational speed [rpm] below baseline (-1.0 sd), 28% of the signal; Air temperature [K] above baseline (+1.0 sd), 27% of the signal; Process temperature [K] near baseline (+0.3 sd), 22% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 818,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3529,
+      "risk": 0.999756,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 212.0,
+          "z": 1.643933,
+          "contribution": 9.769488,
+          "share": 0.436904,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 53.1,
+          "z": 1.312037,
+          "contribution": 5.519673,
+          "share": 0.246847,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1378.0,
+          "z": -0.890321,
+          "contribution": 3.741711,
+          "share": 0.167334,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.9,
+          "z": 0.601398,
+          "contribution": 1.587281,
+          "share": 0.070985,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 0.66216,
+          "share": 0.029613,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 3529 ALERT at row 728: failure risk >99%. Tool wear [min] above baseline (+1.6 sd), 44% of the signal; Torque [Nm] above baseline (+1.3 sd), 25% of the signal; Rotational speed [rpm] below baseline (-0.9 sd), 17% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 728,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 8583,
+      "risk": 0.999752,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 72.0,
+          "z": 3.206103,
+          "contribution": 24.071864,
+          "share": 0.818285,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 297.5,
+          "z": -1.253647,
+          "contribution": -2.141451,
+          "share": 0.072795,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1334.0,
+          "z": -1.133976,
+          "contribution": 1.46435,
+          "share": 0.049778,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 151.0,
+          "z": 0.679065,
+          "contribution": -1.045568,
+          "share": 0.035542,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.238305,
+          "share": 0.008101,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 8583 ALERT at row 1735: failure risk >99%. Torque [Nm] well above baseline (+3.2 sd), 82% of the signal; Air temperature [K] below baseline (-1.3 sd), 7% of the signal; Rotational speed [rpm] below baseline (-1.1 sd), 5% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 1735,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 1163,
+      "risk": 0.999568,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 202.0,
+          "z": 1.485758,
+          "contribution": 9.807137,
+          "share": 0.420198,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 57.1,
+          "z": 1.712897,
+          "contribution": 9.082517,
+          "share": 0.389151,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1400.0,
+          "z": -0.768493,
+          "contribution": 2.015167,
+          "share": 0.086342,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 1.246649,
+          "share": 0.053414,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 296.9,
+          "z": -1.553332,
+          "contribution": -0.775977,
+          "share": 0.033248,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 1163 ALERT at row 245: failure risk >99%. Tool wear [min] above baseline (+1.5 sd), 42% of the signal; Torque [Nm] above baseline (+1.7 sd), 39% of the signal; Rotational speed [rpm] below baseline (-0.8 sd), 9% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 245,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4152,
+      "risk": 0.999433,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1373.0,
+          "z": -0.918009,
+          "contribution": 8.033173,
+          "share": 0.351827,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.9,
+          "z": 0.944047,
+          "contribution": 6.790663,
+          "share": 0.297409,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.4,
+          "z": 0.265013,
+          "contribution": 5.984517,
+          "share": 0.262102,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 48.0,
+          "z": 0.800939,
+          "contribution": 1.25276,
+          "share": 0.054867,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=M",
+          "label": "Type = M",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": -0.295338,
+          "share": 0.012935,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4152 ALERT at row 837: failure risk >99%. Rotational speed [rpm] below baseline (-0.9 sd), 35% of the signal; Air temperature [K] above baseline (+0.9 sd), 30% of the signal; Process temperature [K] near baseline (+0.3 sd), 26% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 837,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3685,
+      "risk": 0.999423,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 65.3,
+          "z": 2.534661,
+          "contribution": 18.521626,
+          "share": 0.805319,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 182.0,
+          "z": 1.169408,
+          "contribution": 2.205124,
+          "share": 0.095879,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 311.2,
+          "z": 0.803229,
+          "contribution": -0.714267,
+          "share": 0.031056,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.0,
+          "z": 0.993994,
+          "contribution": 0.576115,
+          "share": 0.025049,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1270.0,
+          "z": -1.488384,
+          "contribution": 0.554492,
+          "share": 0.024109,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 3685 ALERT at row 754: failure risk >99%. Torque [Nm] well above baseline (+2.5 sd), 81% of the signal; Tool wear [min] above baseline (+1.2 sd), 10% of the signal; Process temperature [K] above baseline (+0.8 sd), 3% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 754,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3788,
+      "risk": 0.99931,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1377.0,
+          "z": -0.895858,
+          "contribution": 8.378742,
+          "share": 0.385512,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.3,
+          "z": 1.143837,
+          "contribution": 7.81656,
+          "share": 0.359646,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.8,
+          "z": 0.534121,
+          "contribution": 3.940723,
+          "share": 0.181315,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 47.3,
+          "z": 0.730789,
+          "contribution": 1.29103,
+          "share": 0.059401,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 22.0,
+          "z": -1.361393,
+          "contribution": -0.18131,
+          "share": 0.008342,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 3788 ALERT at row 770: failure risk >99%. Rotational speed [rpm] below baseline (-0.9 sd), 39% of the signal; Air temperature [K] above baseline (+1.1 sd), 36% of the signal; Process temperature [K] above baseline (+0.5 sd), 18% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 770,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3388,
+      "risk": 0.999202,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 65.3,
+          "z": 2.534661,
+          "contribution": 17.136524,
+          "share": 0.735359,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1290.0,
+          "z": -1.377632,
+          "contribution": 2.865359,
+          "share": 0.122958,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.6,
+          "z": 0.794204,
+          "contribution": 1.763662,
+          "share": 0.075682,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 63.0,
+          "z": -0.712875,
+          "contribution": -0.880181,
+          "share": 0.03777,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.8,
+          "z": 0.534121,
+          "contribution": 0.354699,
+          "share": 0.015221,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 3388 ALERT at row 694: failure risk >99%. Torque [Nm] well above baseline (+2.5 sd), 74% of the signal; Rotational speed [rpm] below baseline (-1.4 sd), 12% of the signal; Air temperature [K] above baseline (+0.8 sd), 8% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 694,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 6249,
+      "risk": 0.998637,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 61.2,
+          "z": 2.123779,
+          "contribution": 15.644177,
+          "share": 0.748476,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 189.0,
+          "z": 1.28013,
+          "contribution": 4.006111,
+          "share": 0.191667,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1405.0,
+          "z": -0.740805,
+          "contribution": 0.515944,
+          "share": 0.024685,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 0.334048,
+          "share": 0.015982,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 300.8,
+          "z": 0.394623,
+          "contribution": 0.147379,
+          "share": 0.007051,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 6249 ALERT at row 1251: failure risk >99%. Torque [Nm] well above baseline (+2.1 sd), 75% of the signal; Tool wear [min] above baseline (+1.3 sd), 19% of the signal; Rotational speed [rpm] below baseline (-0.7 sd), 2% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 1251,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3020,
+      "risk": 0.997958,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 207.0,
+          "z": 1.564845,
+          "contribution": 11.395598,
+          "share": 0.483885,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 54.2,
+          "z": 1.422273,
+          "contribution": 4.90823,
+          "share": 0.208415,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1379.0,
+          "z": -0.884783,
+          "contribution": 3.177851,
+          "share": 0.134939,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 300.5,
+          "z": 0.244781,
+          "contribution": -1.653365,
+          "share": 0.070206,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.8,
+          "z": -0.13865,
+          "contribution": 1.087307,
+          "share": 0.04617,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 3020 ALERT at row 611: failure risk >99%. Tool wear [min] above baseline (+1.6 sd), 48% of the signal; Torque [Nm] above baseline (+1.4 sd), 21% of the signal; Rotational speed [rpm] below baseline (-0.9 sd), 13% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 611,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 9415,
+      "risk": 0.997817,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 207.0,
+          "z": 1.564845,
+          "contribution": 12.356418,
+          "share": 0.513581,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 53.9,
+          "z": 1.392209,
+          "contribution": 4.689659,
+          "share": 0.194921,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1354.0,
+          "z": -1.023224,
+          "contribution": 3.084487,
+          "share": 0.128203,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 298.1,
+          "z": -0.953961,
+          "contribution": -1.946588,
+          "share": 0.080908,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 1.268209,
+          "share": 0.052712,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 9415 ALERT at row 1899: failure risk >99%. Tool wear [min] above baseline (+1.6 sd), 51% of the signal; Torque [Nm] above baseline (+1.4 sd), 19% of the signal; Rotational speed [rpm] below baseline (-1.0 sd), 13% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 1899,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 8847,
+      "risk": 0.9973,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 62.4,
+          "z": 2.244037,
+          "contribution": 13.036809,
+          "share": 0.464943,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 204.0,
+          "z": 1.517393,
+          "contribution": 8.757196,
+          "share": 0.312315,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 297.4,
+          "z": -1.303594,
+          "contribution": -2.031204,
+          "share": 0.072441,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -1.757727,
+          "share": 0.062687,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1325.0,
+          "z": -1.183815,
+          "contribution": 1.460393,
+          "share": 0.052083,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 8847 ALERT at row 1794: failure risk >99%. Torque [Nm] well above baseline (+2.2 sd), 46% of the signal; Tool wear [min] above baseline (+1.5 sd), 31% of the signal; Air temperature [K] below baseline (-1.3 sd), 7% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 1794,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4837,
+      "risk": 0.997116,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 303.3,
+          "z": 1.643313,
+          "contribution": 8.646861,
+          "share": 0.382013,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 62.0,
+          "z": 2.203951,
+          "contribution": 5.689064,
+          "share": 0.25134,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1315.0,
+          "z": -1.239191,
+          "contribution": 5.463768,
+          "share": 0.241386,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 311.8,
+          "z": 1.206891,
+          "contribution": 1.418304,
+          "share": 0.06266,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 42.0,
+          "z": -1.045043,
+          "contribution": -1.356601,
+          "share": 0.059934,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4837 ALERT at row 975: failure risk >99%. Air temperature [K] above baseline (+1.6 sd), 38% of the signal; Torque [Nm] well above baseline (+2.2 sd), 25% of the signal; Rotational speed [rpm] below baseline (-1.2 sd), 24% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 975,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4899,
+      "risk": 0.994225,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 214.0,
+          "z": 1.675568,
+          "contribution": 9.479054,
+          "share": 0.430208,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 53.7,
+          "z": 1.372166,
+          "contribution": 7.851849,
+          "share": 0.356357,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 303.6,
+          "z": 1.793155,
+          "contribution": 1.722294,
+          "share": 0.078166,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1460.0,
+          "z": -0.436235,
+          "contribution": 1.239264,
+          "share": 0.056244,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.879637,
+          "share": 0.039922,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4899 ALERT at row 988: failure risk 99%. Tool wear [min] above baseline (+1.7 sd), 43% of the signal; Torque [Nm] above baseline (+1.4 sd), 36% of the signal; Air temperature [K] above baseline (+1.8 sd), 8% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 988,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 2076,
+      "risk": 0.985285,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 58.8,
+          "z": 1.883263,
+          "contribution": 10.645658,
+          "share": 0.552199,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 195.0,
+          "z": 1.375035,
+          "contribution": 6.454409,
+          "share": 0.334795,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 1.161468,
+          "share": 0.060246,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 299.5,
+          "z": -0.254695,
+          "contribution": -0.284582,
+          "share": 0.014762,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.4,
+          "z": -0.407758,
+          "contribution": -0.232126,
+          "share": 0.012041,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 2076 ALERT at row 423: failure risk 99%. Torque [Nm] above baseline (+1.9 sd), 55% of the signal; Tool wear [min] above baseline (+1.4 sd), 33% of the signal; Type = L above baseline (+1.0 sd), 6% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 423,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4732,
+      "risk": 0.977878,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1301.0,
+          "z": -1.316718,
+          "contribution": 7.576646,
+          "share": 0.414388,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 303.3,
+          "z": 1.643313,
+          "contribution": 6.90445,
+          "share": 0.377624,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 219.0,
+          "z": 1.754655,
+          "contribution": 2.360475,
+          "share": 0.129101,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 311.6,
+          "z": 1.072337,
+          "contribution": 1.147554,
+          "share": 0.062763,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 45.1,
+          "z": 0.510316,
+          "contribution": -0.190362,
+          "share": 0.010411,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4732 ALERT at row 949: failure risk 98%. Rotational speed [rpm] below baseline (-1.3 sd), 41% of the signal; Air temperature [K] above baseline (+1.6 sd), 38% of the signal; Tool wear [min] above baseline (+1.8 sd), 13% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 949,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4769,
+      "risk": 0.967417,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 303.6,
+          "z": 1.793155,
+          "contribution": 9.019658,
+          "share": 0.4698,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1309.0,
+          "z": -1.272417,
+          "contribution": 7.348619,
+          "share": 0.382762,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 52.9,
+          "z": 1.291994,
+          "contribution": 1.800695,
+          "share": 0.093791,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 312.0,
+          "z": 1.341445,
+          "contribution": -0.561015,
+          "share": 0.029221,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 86.0,
+          "z": -0.349073,
+          "contribution": -0.323406,
+          "share": 0.016845,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4769 ALERT at row 955: failure risk 97%. Air temperature [K] above baseline (+1.8 sd), 47% of the signal; Rotational speed [rpm] below baseline (-1.3 sd), 38% of the signal; Torque [Nm] above baseline (+1.3 sd), 9% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 955,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4141,
+      "risk": 0.965927,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 61.2,
+          "z": 2.123779,
+          "contribution": 5.907955,
+          "share": 0.28048,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.7,
+          "z": 0.844151,
+          "contribution": 4.814994,
+          "share": 0.228591,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.2,
+          "z": 0.130459,
+          "contribution": 4.287474,
+          "share": 0.203547,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1331.0,
+          "z": -1.150589,
+          "contribution": 3.987324,
+          "share": 0.189298,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 47.0,
+          "z": -0.965955,
+          "contribution": -1.839475,
+          "share": 0.087329,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4141 ALERT at row 835: failure risk 97%. Torque [Nm] well above baseline (+2.1 sd), 28% of the signal; Air temperature [K] above baseline (+0.8 sd), 23% of the signal; Process temperature [K] near baseline (+0.1 sd), 20% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 835,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3351,
+      "risk": 0.937344,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 62.6,
+          "z": 2.264081,
+          "contribution": 13.609826,
+          "share": 0.775008,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 183.0,
+          "z": 1.185225,
+          "contribution": 2.967637,
+          "share": 0.168991,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.4,
+          "z": 0.694309,
+          "contribution": 0.307504,
+          "share": 0.017511,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.8,
+          "z": 0.534121,
+          "contribution": -0.256162,
+          "share": 0.014587,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 0.147627,
+          "share": 0.008407,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 3351 ALERT at row 687: failure risk 94%. Torque [Nm] well above baseline (+2.3 sd), 78% of the signal; Tool wear [min] above baseline (+1.2 sd), 17% of the signal; Air temperature [K] above baseline (+0.7 sd), 2% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 687,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4221,
+      "risk": 0.920891,
+      "level": "ALERT",
+      "confidence": 0.88835,
+      "confidence_n": 206,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 65.9,
+          "z": 2.59479,
+          "contribution": 13.710296,
+          "share": 0.711569,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.9,
+          "z": 0.944047,
+          "contribution": 2.169633,
+          "share": 0.112605,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1260.0,
+          "z": -1.543761,
+          "contribution": 1.167328,
+          "share": 0.060585,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 29.0,
+          "z": -1.25067,
+          "contribution": -1.0864,
+          "share": 0.056385,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.6,
+          "z": 0.399567,
+          "contribution": 0.686864,
+          "share": 0.035648,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 4221 ALERT at row 850: failure risk 92%. Torque [Nm] well above baseline (+2.6 sd), 71% of the signal; Air temperature [K] above baseline (+0.9 sd), 11% of the signal; Rotational speed [rpm] below baseline (-1.5 sd), 6% of the signal. Historically 89% of scores in this band were followed by failure within the alarm horizon (n=206).",
+      "cycle": 850,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 6341,
+      "risk": 0.871592,
+      "level": "ALERT",
+      "confidence": 0.871592,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 210.0,
+          "z": 1.612298,
+          "contribution": 8.503348,
+          "share": 0.512018,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.9,
+          "z": -0.071373,
+          "contribution": 3.358412,
+          "share": 0.202223,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1397.0,
+          "z": -0.785106,
+          "contribution": 2.651419,
+          "share": 0.159652,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 45.9,
+          "z": 0.590488,
+          "contribution": 0.811211,
+          "share": 0.048846,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=H",
+          "label": "Type = H",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 0.616982,
+          "share": 0.037151,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 6341 ALERT at row 1274: failure risk 87%. Tool wear [min] above baseline (+1.6 sd), 51% of the signal; Process temperature [K] near baseline (-0.1 sd), 20% of the signal; Rotational speed [rpm] below baseline (-0.8 sd), 16% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 1274,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4131,
+      "risk": 0.859001,
+      "level": "ALERT",
+      "confidence": 0.859001,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 62.8,
+          "z": 2.284124,
+          "contribution": 6.868635,
+          "share": 0.349672,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.9,
+          "z": 0.944047,
+          "contribution": 4.634129,
+          "share": 0.235917,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.4,
+          "z": 0.265013,
+          "contribution": 3.62516,
+          "share": 0.184552,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1286.0,
+          "z": -1.399782,
+          "contribution": 2.374299,
+          "share": 0.120872,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 22.0,
+          "z": -1.361393,
+          "contribution": -1.894854,
+          "share": 0.096464,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4131 ALERT at row 832: failure risk 86%. Torque [Nm] well above baseline (+2.3 sd), 35% of the signal; Air temperature [K] above baseline (+0.9 sd), 24% of the signal; Process temperature [K] near baseline (+0.3 sd), 18% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 832,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4217,
+      "risk": 0.851312,
+      "level": "ALERT",
+      "confidence": 0.851312,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1370.0,
+          "z": -0.934622,
+          "contribution": 4.895671,
+          "share": 0.310117,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.9,
+          "z": 0.944047,
+          "contribution": 4.125746,
+          "share": 0.261346,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.7,
+          "z": 0.466844,
+          "contribution": 3.053019,
+          "share": 0.193394,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 20.0,
+          "z": -1.393028,
+          "contribution": 2.896205,
+          "share": 0.183461,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 50.3,
+          "z": 1.031434,
+          "contribution": 0.524278,
+          "share": 0.033211,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 4217 ALERT at row 848: failure risk 85%. Rotational speed [rpm] below baseline (-0.9 sd), 31% of the signal; Air temperature [K] above baseline (+0.9 sd), 26% of the signal; Process temperature [K] near baseline (+0.5 sd), 19% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 848,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3861,
+      "risk": 0.822065,
+      "level": "ALERT",
+      "confidence": 0.822065,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 213.0,
+          "z": 1.65975,
+          "contribution": 9.090683,
+          "share": 0.583812,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.6,
+          "z": 1.29368,
+          "contribution": 4.321908,
+          "share": 0.277557,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 311.5,
+          "z": 1.00506,
+          "contribution": 1.28269,
+          "share": 0.082376,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 38.9,
+          "z": -0.111018,
+          "contribution": 0.438937,
+          "share": 0.028189,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1427.0,
+          "z": -0.618977,
+          "contribution": 0.189983,
+          "share": 0.012201,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 3861 ALERT at row 782: failure risk 82%. Tool wear [min] above baseline (+1.7 sd), 58% of the signal; Air temperature [K] above baseline (+1.3 sd), 28% of the signal; Process temperature [K] above baseline (+1.0 sd), 8% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 782,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 6438,
+      "risk": 0.820654,
+      "level": "ALERT",
+      "confidence": 0.820654,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 66.1,
+          "z": 2.614834,
+          "contribution": 15.799001,
+          "share": 0.800238,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 300.4,
+          "z": 0.194833,
+          "contribution": -2.091104,
+          "share": 0.105917,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1282.0,
+          "z": -1.421933,
+          "contribution": 0.903916,
+          "share": 0.045784,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 40.0,
+          "z": -1.076678,
+          "contribution": 0.419918,
+          "share": 0.021269,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 0.336263,
+          "share": 0.017032,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 6438 ALERT at row 1293: failure risk 82%. Torque [Nm] well above baseline (+2.6 sd), 80% of the signal; Air temperature [K] near baseline (+0.2 sd), 11% of the signal; Rotational speed [rpm] below baseline (-1.4 sd), 5% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 1293,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 3026,
+      "risk": 0.815681,
+      "level": "ALERT",
+      "confidence": 0.815681,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 219.0,
+          "z": 1.754655,
+          "contribution": 10.057038,
+          "share": 0.516768,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1366.0,
+          "z": -0.956772,
+          "contribution": 3.61924,
+          "share": 0.18597,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 50.2,
+          "z": 1.021413,
+          "contribution": 2.283399,
+          "share": 0.11733,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 300.5,
+          "z": 0.244781,
+          "contribution": -1.966086,
+          "share": 0.101025,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 0.865082,
+          "share": 0.044451,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 3026 ALERT at row 614: failure risk 82%. Tool wear [min] above baseline (+1.8 sd), 52% of the signal; Rotational speed [rpm] below baseline (-1.0 sd), 19% of the signal; Torque [Nm] above baseline (+1.0 sd), 12% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 614,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4327,
+      "risk": 0.724913,
+      "level": "ALERT",
+      "confidence": 0.724913,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1362.0,
+          "z": -0.978923,
+          "contribution": 7.206261,
+          "share": 0.431432,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.1,
+          "z": 0.063182,
+          "contribution": 3.585543,
+          "share": 0.214663,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 301.6,
+          "z": 0.794204,
+          "contribution": 2.437942,
+          "share": 0.145957,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 55.8,
+          "z": 1.582618,
+          "contribution": 2.025462,
+          "share": 0.121262,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 70.0,
+          "z": -0.602153,
+          "contribution": -0.846427,
+          "share": 0.050675,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4327 ALERT at row 865: failure risk 72%. Rotational speed [rpm] below baseline (-1.0 sd), 43% of the signal; Process temperature [K] near baseline (+0.1 sd), 21% of the signal; Air temperature [K] above baseline (+0.8 sd), 15% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 865,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 1124,
+      "risk": 0.687817,
+      "level": "ALERT",
+      "confidence": 0.687817,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 62.3,
+          "z": 2.234016,
+          "contribution": 14.293707,
+          "share": 0.702333,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1386.0,
+          "z": -0.84602,
+          "contribution": 3.295363,
+          "share": 0.16192,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=H",
+          "label": "Type = H",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": -1.147745,
+          "share": 0.056395,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 296.6,
+          "z": -1.703175,
+          "contribution": -0.855915,
+          "share": 0.042056,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 100.0,
+          "z": -0.127627,
+          "contribution": -0.399614,
+          "share": 0.019635,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 1124 ALERT at row 235: failure risk 69%. Torque [Nm] well above baseline (+2.2 sd), 70% of the signal; Rotational speed [rpm] below baseline (-0.8 sd), 16% of the signal; Type = H above baseline (+1.0 sd), 6% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 235,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 2234,
+      "risk": 0.651236,
+      "level": "ALERT",
+      "confidence": 0.651236,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 2549.0,
+          "z": 5.594239,
+          "contribution": 9.068358,
+          "share": 0.542385,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 13.0,
+          "z": -2.70659,
+          "contribution": 5.061145,
+          "share": 0.302711,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 179.0,
+          "z": 1.121955,
+          "contribution": 1.35125,
+          "share": 0.080819,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 308.7,
+          "z": -0.878697,
+          "contribution": -0.710375,
+          "share": 0.042488,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=M",
+          "label": "Type = M",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.232273,
+          "share": 0.013892,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 2234 ALERT at row 458: failure risk 65%. Rotational speed [rpm] well above baseline (+5.6 sd), 54% of the signal; Torque [Nm] well below baseline (-2.7 sd), 30% of the signal; Tool wear [min] above baseline (+1.1 sd), 8% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 458,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 1419,
+      "risk": 0.556845,
+      "level": "ALERT",
+      "confidence": 0.556845,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 210.0,
+          "z": 1.612298,
+          "contribution": 7.728494,
+          "share": 0.486623,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1320.0,
+          "z": -1.211503,
+          "contribution": 4.16076,
+          "share": 0.261981,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.9,
+          "z": -0.071373,
+          "contribution": 2.38446,
+          "share": 0.150137,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 298.8,
+          "z": -0.604328,
+          "contribution": -0.541958,
+          "share": 0.034124,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 0.538761,
+          "share": 0.033923,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 1419 ALERT at row 296: failure risk 56%. Tool wear [min] above baseline (+1.6 sd), 49% of the signal; Rotational speed [rpm] below baseline (-1.2 sd), 26% of the signal; Process temperature [K] near baseline (-0.1 sd), 15% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 296,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4834,
+      "risk": 0.504839,
+      "level": "ALERT",
+      "confidence": 0.504839,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1377.0,
+          "z": -0.895858,
+          "contribution": 7.830019,
+          "share": 0.453751,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 303.4,
+          "z": 1.69326,
+          "contribution": 7.46326,
+          "share": 0.432497,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 41.6,
+          "z": 0.159563,
+          "contribution": -1.56203,
+          "share": 0.09052,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 311.9,
+          "z": 1.274168,
+          "contribution": 0.160881,
+          "share": 0.009323,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 34.0,
+          "z": -1.171583,
+          "contribution": 0.130357,
+          "share": 0.007554,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 4834 ALERT at row 974: failure risk 50%. Rotational speed [rpm] below baseline (-0.9 sd), 45% of the signal; Air temperature [K] above baseline (+1.7 sd), 43% of the signal; Torque [Nm] near baseline (+0.2 sd), 9% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 974,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4355,
+      "risk": 0.41612,
+      "level": "WATCH",
+      "confidence": 0.41612,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 58.1,
+          "z": 1.813112,
+          "contribution": 8.641656,
+          "share": 0.548229,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.0,
+          "z": 0.993994,
+          "contribution": 2.388998,
+          "share": 0.151559,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 309.8,
+          "z": -0.13865,
+          "contribution": 2.185526,
+          "share": 0.13865,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1456.0,
+          "z": -0.458386,
+          "contribution": 1.29406,
+          "share": 0.082095,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 145.0,
+          "z": 0.58416,
+          "contribution": -1.030178,
+          "share": 0.065355,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4355 WATCH at row 877: failure risk 42%. Torque [Nm] above baseline (+1.8 sd), 55% of the signal; Air temperature [K] above baseline (+1.0 sd), 15% of the signal; Process temperature [K] near baseline (-0.1 sd), 14% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 877,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4852,
+      "risk": 0.355873,
+      "level": "WATCH",
+      "confidence": 0.355873,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1363.0,
+          "z": -0.973385,
+          "contribution": 7.410217,
+          "share": 0.388682,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 303.7,
+          "z": 1.843103,
+          "contribution": 7.215877,
+          "share": 0.378488,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 312.1,
+          "z": 1.408722,
+          "contribution": -2.553367,
+          "share": 0.13393,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 51.8,
+          "z": 1.181757,
+          "contribution": 1.541494,
+          "share": 0.080855,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 90.0,
+          "z": -0.285803,
+          "contribution": -0.22521,
+          "share": 0.011813,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4852 WATCH at row 977: failure risk 36%. Rotational speed [rpm] below baseline (-1.0 sd), 39% of the signal; Air temperature [K] above baseline (+1.8 sd), 38% of the signal; Process temperature [K] above baseline (+1.4 sd), 13% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 977,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 5063,
+      "risk": 0.253492,
+      "level": "WATCH",
+      "confidence": 0.253492,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 202.0,
+          "z": 1.485758,
+          "contribution": 6.24958,
+          "share": 0.283663,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 312.9,
+          "z": 1.946938,
+          "contribution": -4.536283,
+          "share": 0.205898,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1313.0,
+          "z": -1.250267,
+          "contribution": 4.033359,
+          "share": 0.183071,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 53.9,
+          "z": 1.392209,
+          "contribution": 3.773996,
+          "share": 0.171299,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 304.0,
+          "z": 1.992946,
+          "contribution": 3.034799,
+          "share": 0.137747,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 5063 WATCH at row 1021: failure risk 25%. Tool wear [min] above baseline (+1.5 sd), 28% of the signal; Process temperature [K] above baseline (+1.9 sd), 21% of the signal; Rotational speed [rpm] below baseline (-1.3 sd), 18% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 1021,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 6322,
+      "risk": 0.239833,
+      "level": "WATCH",
+      "confidence": 0.239833,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 64.9,
+          "z": 2.494575,
+          "contribution": 15.1674,
+          "share": 0.766642,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 160.0,
+          "z": 0.821423,
+          "contribution": -1.870202,
+          "share": 0.09453,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 300.7,
+          "z": 0.344676,
+          "contribution": -1.578648,
+          "share": 0.079793,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 310.2,
+          "z": 0.130459,
+          "contribution": 0.452237,
+          "share": 0.022859,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Type=L",
+          "label": "Type = L",
+          "value": 1.0,
+          "z": 1.0,
+          "contribution": 0.301391,
+          "share": 0.015234,
+          "pushes": "toward failure"
+        }
+      ],
+      "sentence": "Machine 6322 WATCH at row 1267: failure risk 24%. Torque [Nm] well above baseline (+2.5 sd), 77% of the signal; Tool wear [min] above baseline (+0.8 sd), 9% of the signal; Air temperature [K] near baseline (+0.3 sd), 8% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 1267,
+      "actual": 0.0,
+      "actual_rul": null
+    },
+    {
+      "id": 6991,
+      "risk": 0.236287,
+      "level": "WATCH",
+      "confidence": 0.236287,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 2478.0,
+          "z": 5.201068,
+          "contribution": 9.279335,
+          "share": 0.515438,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 13.4,
+          "z": -2.666504,
+          "contribution": 5.947673,
+          "share": 0.330375,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 170.0,
+          "z": 0.979598,
+          "contribution": -1.582498,
+          "share": 0.087903,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 300.7,
+          "z": 0.344676,
+          "contribution": -0.445351,
+          "share": 0.024738,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Type=M",
+          "label": "Type = M",
+          "value": 0.0,
+          "z": 0.0,
+          "contribution": -0.314973,
+          "share": 0.017496,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 6991 WATCH at row 1407: failure risk 24%. Rotational speed [rpm] well above baseline (+5.2 sd), 52% of the signal; Torque [Nm] well below baseline (-2.7 sd), 33% of the signal; Tool wear [min] above baseline (+1.0 sd), 9% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 1407,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 7764,
+      "risk": 0.230345,
+      "level": "WATCH",
+      "confidence": 0.230345,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 76.6,
+          "z": 3.667092,
+          "contribution": 19.61634,
+          "share": 0.720774,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1200.0,
+          "z": -1.876018,
+          "contribution": -3.365703,
+          "share": 0.123668,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 3.0,
+          "z": -1.661925,
+          "contribution": -2.282579,
+          "share": 0.08387,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 300.4,
+          "z": 0.194833,
+          "contribution": -0.887416,
+          "share": 0.032607,
+          "pushes": "away from failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 311.6,
+          "z": 1.072337,
+          "contribution": -0.655773,
+          "share": 0.024095,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 7764 WATCH at row 1562: failure risk 23%. Torque [Nm] well above baseline (+3.7 sd), 72% of the signal; Rotational speed [rpm] below baseline (-1.9 sd), 12% of the signal; Tool wear [min] below baseline (-1.7 sd), 8% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 1562,
+      "actual": 1.0,
+      "actual_rul": null
+    },
+    {
+      "id": 4192,
+      "risk": 0.207555,
+      "level": "OK",
+      "confidence": 0.207555,
+      "confidence_n": 0,
+      "drivers": [
+        {
+          "feature": "Torque_Nm",
+          "label": "Torque [Nm]",
+          "value": 59.4,
+          "z": 1.943392,
+          "contribution": 6.451448,
+          "share": 0.4721,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Air_temperature_K",
+          "label": "Air temperature [K]",
+          "value": 302.4,
+          "z": 1.193784,
+          "contribution": 3.135867,
+          "share": 0.229475,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "label": "Rotational speed [rpm]",
+          "value": 1317.0,
+          "z": -1.228116,
+          "contribution": 2.632471,
+          "share": 0.192637,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Tool_wear_min",
+          "label": "Tool wear [min]",
+          "value": 179.0,
+          "z": 1.121955,
+          "contribution": 0.694485,
+          "share": 0.050821,
+          "pushes": "toward failure"
+        },
+        {
+          "feature": "Process_temperature_K",
+          "label": "Process temperature [K]",
+          "value": 311.0,
+          "z": 0.668675,
+          "contribution": -0.424494,
+          "share": 0.031063,
+          "pushes": "away from failure"
+        }
+      ],
+      "sentence": "Machine 4192 OK at row 842: failure risk 21%. Torque [Nm] above baseline (+1.9 sd), 47% of the signal; Air temperature [K] above baseline (+1.2 sd), 23% of the signal; Rotational speed [rpm] below baseline (-1.2 sd), 19% of the signal. Too few similar scores for a precision estimate.",
+      "cycle": 842,
+      "actual": 0.0,
+      "actual_rul": null
+    }
+  ],
+  "registry": {
+    "mlflow_run_id": "e41df6437140472ba2c8d24ac801eed7",
+    "model_name": "sentinel-ai4i",
+    "version": 2,
+    "tracking_uri": "http://mlflow:5000"
+  },
+  "serving": {
+    "folder": "/app/runs/run-619a8a6c01/serving",
+    "parity": {
+      "ok": true,
+      "max_abs_diff": 0.0,
+      "entities": 5,
+      "health": {
+        "status": "ok",
+        "model": "sentinel-ai4i",
+        "version": 2
+      }
+    }
+  },
+  "monitor": {
+    "baseline": {
+      "status": "STABLE",
+      "reason": "no top-10 feature above the watch threshold",
+      "worst": {
+        "feature": "Tool_wear_min",
+        "psi": 0.011727,
+        "ks_d": 0.026375,
+        "ks_p": 0.213392
+      },
+      "top10": [
+        {
+          "feature": "Torque_Nm",
+          "psi": 0.005915,
+          "ks_d": 0.02575,
+          "ks_p": 0.236795
+        },
+        {
+          "feature": "Tool_wear_min",
+          "psi": 0.011727,
+          "ks_d": 0.026375,
+          "ks_p": 0.213392
+        },
+        {
+          "feature": "Rotational_speed_rpm",
+          "psi": 0.006359,
+          "ks_d": 0.019,
+          "ks_p": 0.606245
+        },
+        {
+          "feature": "Air_temperature_K",
+          "psi": 0.007117,
+          "ks_d": 0.01675,
+          "ks_p": 0.756477
+        },
+        {
+          "feature": "Process_temperature_K",
+          "psi": 0.008691,
+          "ks_d": 0.013,
+          "ks_p": 0.947763
+        }
+      ],
+      "n_watch": 0,
+      "n_retrain": 0,
+      "thresholds": {
+        "watch": 0.1,
+        "retrain": 0.25
+      }
+    },
+    "reference_features": 5,
+    "window": 50
+  },
+  "feature_spec": {
+    "n_features": 9,
+    "dropped": [
+      {
+        "col": "UDI",
+        "reason": "one unique value per row (row identifier)"
+      },
+      {
+        "col": "Product ID",
+        "reason": "one unique value per row (row identifier)"
+      },
+      {
+        "col": "TWF",
+        "reason": "target leakage: P(target=1 | TWF=1) = 100% over 35 rows"
+      },
+      {
+        "col": "HDF",
+        "reason": "target leakage: P(target=1 | HDF=1) = 100% over 98 rows"
+      },
+      {
+        "col": "PWF",
+        "reason": "target leakage: P(target=1 | PWF=1) = 100% over 75 rows"
+      },
+      {
+        "col": "OSF",
+        "reason": "target leakage: P(target=1 | OSF=1) = 100% over 80 rows"
+      }
+    ]
+  },
+  "entity_noun": "Machine",
+  "time_noun": "row",
+  "llm_calls": 0
+}

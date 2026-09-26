@@ -10,7 +10,8 @@ import json
 import os
 import time
 
-from sqlalchemy import Column, Float, Integer, MetaData, String, Table, Text, create_engine, insert, select
+from sqlalchemy import Column, Float, Integer, MetaData, String, Table, Text, create_engine, func, insert, select
+
 
 from . import config
 from .util import clean
@@ -21,13 +22,19 @@ runs = Table("sentinel_runs", meta,
              Column("status", String(20)), Column("run_hash", String(64)), Column("created", Float),
              Column("summary", Text))
 decisions = Table("sentinel_decisions", meta,
-                  Column("id", Integer, primary_key=True, autoincrement=True), Column("run_id", String(40)),
+                  Column("id", Integer, primary_key=True, autoincrement=True),
+                  Column("run_id", String(40), index=True),
                   Column("seq", Integer), Column("node", String(40)), Column("rule", String(60)),
                   Column("detail", Text))
 predictions = Table("sentinel_predictions", meta,
-                    Column("id", Integer, primary_key=True, autoincrement=True), Column("run_id", String(40)),
-                    Column("model_version", String(20)), Column("entity", String(60)), Column("risk", Float),
-                    Column("level", String(10)), Column("created", Float))
+                    Column("id", Integer, primary_key=True, autoincrement=True),
+                    Column("run_id", String(40), index=True),
+                    Column("model_version", String(20)),
+                    Column("entity", String(60), index=True),
+                    Column("risk", Float),
+                    Column("level", String(10)),
+                    Column("created", Float, index=True))
+
 
 
 class Store:
@@ -58,14 +65,21 @@ class Store:
                                                    rule=d.get("rule", ""), detail=json.dumps(clean(d))))
 
     def log_predictions(self, run_id: str, version: str, rows: list) -> None:
+        if not rows:
+            return
+        records = [
+            dict(run_id=run_id, model_version=version, entity=str(r["id"]),
+                 risk=float(r["risk"]), level=r["level"], created=time.time())
+            for r in rows
+        ]
         with self.engine.begin() as c:
-            for r in rows:
-                c.execute(insert(predictions).values(run_id=run_id, model_version=version, entity=str(r["id"]),
-                                                     risk=float(r["risk"]), level=r["level"], created=time.time()))
+            c.execute(insert(predictions), records)
 
     def count_predictions(self, run_id: str) -> int:
         with self.engine.begin() as c:
-            return len(c.execute(select(predictions.c.id).where(predictions.c.run_id == run_id)).all())
+            val = c.execute(select(func.count(predictions.c.id)).where(predictions.c.run_id == run_id)).scalar()
+            return int(val or 0)
+
 
     def list_runs(self) -> list:
         with self.engine.begin() as c:

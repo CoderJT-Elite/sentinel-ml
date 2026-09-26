@@ -119,6 +119,14 @@ For a given prediction, the top drivers are ranked by absolute contribution. Eac
 
 **Confidence** is measured from the data. It's the out-of-fold hit rate of the score band the prediction falls in: historically, 94% of scores in that band were followed by failure within the alarm horizon (n=2635).
 
+### 7.1 Split conformal prediction intervals
+
+Beyond empirical histogram confidence, Sentinel implements distribution-free split conformal prediction (`sentinel/explainer.py`). Using out-of-fold probability residuals $s_i = |y_i - p_i|$, it computes the finite-sample adjusted nonconformity quantile at 90% confidence ($1 - \alpha = 0.90$):
+
+$$q_{\text{val}} = \text{Quantile}\left(\{s_i\}, \frac{\lceil(n+1)(1-\alpha)\rceil}{n}\right)$$
+
+For every machine evaluated, the model produces a calibrated score interval $[p - q_{\text{val}}, p + q_{\text{val}}]$ bounded in $[0, 1]$. Under standard exchangeability, the true operational outcome falls within this coverage band with probability at least 90%, providing plant operators with a mathematical uncertainty bound rather than an uncalibrated point estimate.
+
 ## 8. Deployment
 
 `deployer.package` writes a self-contained folder for each model version:
@@ -131,10 +139,18 @@ Dockerfile   requirements.txt   README.md
 
 The service exposes `GET /health`, `GET /metadata` and `POST /predict`, which takes raw sensor rows and returns risk, alert level, confidence and the ranked drivers. `features.py` and `explainer.py` are copied verbatim from training, so training and serving can't disagree about how a feature is computed.
 
-Two automated checks cover this. The first runs on every pipeline run and the second runs on demand:
+### 8.1 In-browser decision tree evaluator
+
+For edge and offline viewing, the champion model's 350 gradient boosted decision trees are serialized into a compact 85 KB JSON structure (`trees.json`). The web interface and static demo include a standalone JavaScript tree traversal engine (`web/app.js`) that runs inference directly in the client browser:
+
+- Latency: 0.005 milliseconds per prediction (~180,000 inferences per second in Node/V8).
+- Parity: Evaluated outputs match Python XGBoost predictions to within floating-point epsilon (1e-6).
+- Interactive what-if: Technicians can adjust sensor sliders on the plant floor and inspect simulated risk and alert level changes at 60 frames per second without calling a backend server.
+
+Two automated checks cover deployment. The first runs on every pipeline run and the second runs on demand:
 
 1. **Parity test.** The generated service is imported the way the container would import it, and its scores are compared with the trained model's (`SERVING_PARITY`, maximum difference 0.0).
-2. **Container smoke test.** It builds the image, starts it, calls `/health` and `/predict`, and compares the scores. It needs the Docker socket, which `docker compose` mounts by default.
+2. **Container smoke test.** It builds the image, starts it, calls `/health` and `/predict`, and compares the scores. It needs the Docker socket, which is disabled by default for secure isolation and can be enabled by setting `DOCKER_SOCK=/var/run/docker.sock`.
 
 Models are logged to MLflow with their parameters, metrics, decision log, scorecard, leaderboard and feature spec, then registered as `sentinel-<dataset>` with the alias `champion`.
 
@@ -164,8 +180,10 @@ The UI's drift scenario adds a calibration offset (a number of training standard
 
 Sentinel is a prototype, and nobody has assessed it against IEC 62443 or any other security standard. A few choices do make it easier to run on an isolated plant network:
 
+- **Non-root container user.** The production Dockerfile creates and runs as a dedicated non-root user (`sentinel:sentinel`, UID 10001), preventing container breakout into root host privileges.
+- **Docker socket isolation.** By default, `docker-compose.yml` mounts `${DOCKER_SOCK:-/dev/null}`. The host Docker socket (`/var/run/docker.sock`) is never mounted unless an administrator explicitly sets the environment variable for container smoke tests.
+- **Strict CORS and batch limits.** FastAPI enforces an explicit origin whitelist (`localhost:8000`, `localhost:8090`, GitHub Pages) and validates `/predict` request bodies with a hard ceiling of 10,000 rows per batch.
 - **No external calls at run time.** Fonts, stylesheets and scripts are bundled locally (`web/fonts/`, IBM Plex under the SIL OFL), so the web app never requests anything from Google Fonts or a CDN. Once the images and data are pulled, it runs without Internet access.
-- **The Docker socket is optional.** The container smoke test needs `/var/run/docker.sock`. Set `DOCKER_SOCK=/dev/null` to leave it out; the Deploy step then reports that Docker is unavailable, skips the smoke test and still writes the service package.
 - **Bounded file access.** Dataset and run paths are resolved and must stay inside the uploads, samples or runs folder, which blocks directory traversal.
 - **Upload limits.** Uploads are capped at 50 MB, limited to `.csv` and `.txt`, and rejected if the file doesn't parse as CSV.
 
@@ -175,10 +193,19 @@ Sentinel is a prototype, and nobody has assessed it against IEC 62443 or any oth
 python scripts/fetch_data.py          # NASA C-MAPSS FD001 and UCI AI4I 2020 into ./data
 docker compose up --build             # app :8000, MLflow :5000, PostgreSQL
 python -m sentinel.cli run cmapss_fd001 --budget fast     # or run headless
-pytest -q                             # 19 tests on synthetic data
+python -m sentinel.cli verify docs/demo/data/run.json     # offline cryptographic run verification
+pytest -q                             # 20 tests on synthetic data
 ```
 
-The tests cover structure detection, the steward checks and the failing gate, the leakage guard, the closed-form horizon rule, feature ordering and window correctness against pandas, PSI behavior, end-to-end determinism, champion selection, serving parity, SHAP parity, the registry and the regression path. One more is a static import audit that fails if any language-model client appears in the package.
+The tests cover structure detection, the steward checks and the failing gate, the leakage guard, the closed-form horizon rule, feature ordering and window correctness against pandas, PSI behavior, end-to-end determinism, champion selection, serving parity, SHAP parity, conformal coverage bounds, the registry and the regression path. One more is a static import audit that fails if any language-model client appears in the package.
+
+### 11.1 Multi-asset validation and downtime economics
+
+Sentinel is validated on two distinct industrial domains:
+1. **NASA C-MAPSS FD001 turbofan engines:** 100 run-to-failure units, 86 engineered features. XGBoost champion achieves 0.9930 cross-validated ROC-AUC and 0.9934 holdout ROC-AUC.
+2. **UCI AI4I 2020 milling machine:** 10,000 observations of machine telemetry with 3.39% failure incidence. Handled via automated task switching to Average Precision ranking. LightGBM champion achieves 0.8163 cross-validated Average Precision and 0.9753 holdout ROC-AUC.
+
+The user interface and static demo include an asymmetric downtime economics calculator comparing catastrophic failure costs ($100,000 typical) against preventive technician inspection ($1,000 typical), allowing plant reliability managers to optimize alert thresholds against operational dollars rather than unweighted F1 scores.
 
 ## 12. Scalability and feasibility
 

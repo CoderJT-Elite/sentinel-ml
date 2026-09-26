@@ -2,10 +2,11 @@
   --paper: #eceeef;
   --panel: #fbfbfa;
   --ink: #101418;
-  --steel: #5b6670;
-  --rule: #cdd3d8;
-  --rule-soft: #e1e5e8;
+  --steel: #505c66;
+  --rule: #788590;
+  --rule-soft: #d3d8dc;
   --red: #d8001b;
+
   --red-soft: #fbe3e6;
   --teal: #08635f;
   --teal-soft: #dcefee;
@@ -95,6 +96,9 @@ pre.code { padding: 12px 14px; overflow: auto; white-space: pre; }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 select, input[type=text], input[type=file] { font: inherit; padding: 8px 10px; border: 1px solid var(--ink); background: #fff; }
 input[type=range] { accent-color: var(--red); width: 220px; }
+input[type=range].sim-slider { min-height: 28px; cursor: pointer; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; margin-bottom: 8px; }
+
 
 /* dataset cards */
 .ds { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }

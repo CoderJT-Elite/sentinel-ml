@@ -12,6 +12,7 @@ import uuid
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -26,7 +27,22 @@ WEB = ROOT / "web"
 
 app = FastAPI(title="Sentinel", version=__version__,
               description="Deterministic AutoML + MLOps for predictive maintenance. No LLM in the decision path.")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:8090",
+        "http://127.0.0.1:8090",
+        "https://coderjt-elite.github.io",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 STORE = Store()
+
 
 
 class Job:
@@ -247,8 +263,11 @@ class PredictReq(BaseModel):
 
 @app.post("/api/runs/{run_id}/predict")
 def predict(run_id: str, req: PredictReq):
+    if len(req.rows) > 10000:
+        raise HTTPException(413, "Batch size exceeds maximum limit of 10,000 rows")
     j = _job(run_id)
     if not j.result or j.result.get("halted"):
+
         raise HTTPException(409, "run did not complete")
     from fastapi.testclient import TestClient
     folder = j.result["serving"]["folder"]

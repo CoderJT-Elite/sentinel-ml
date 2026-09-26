@@ -96,6 +96,25 @@ def reliability_table(y: np.ndarray, p: np.ndarray, bins: int = 10) -> list:
     return out
 
 
+def conformal_quantile(y_true: np.ndarray, y_prob: np.ndarray, alpha: float = 0.10) -> float:
+    """Split conformal prediction nonconformity quantile for 1 - alpha coverage (default 90%).
+    
+    Nonconformity measure s_i = |y_i - p_i|.
+    Guarantees distribution-free marginal coverage P(Y in C(X)) >= 1 - alpha on exchangeable data.
+    """
+    n = len(y_true)
+    if n == 0:
+        return 0.5
+    residuals = np.abs(y_true - y_prob)
+    q_level = min(1.0, float(np.ceil((n + 1) * (1.0 - alpha)) / n))
+    return float(np.quantile(residuals, q_level, method="higher"))
+
+
+def conformal_bounds(p: float, q: float) -> tuple[float, float]:
+    """Return [lower, upper] coverage bounds clipped to [0, 1]."""
+    return max(0.0, float(p - q)), min(1.0, float(p + q))
+
+
 def confidence_for(p: float, table: list) -> tuple:
     """Historical precision of the score band this prediction falls in (out-of-fold)."""
     i = min(int(p * len(table)), len(table) - 1)
