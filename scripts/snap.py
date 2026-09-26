@@ -47,6 +47,16 @@ with sync_playwright() as p:
         pg.screenshot(path=f"{out}/{t}.png")
         print("shot", t)
 
+    # what-if: a borderline engine, one driver moved back to its baseline, re-scored by the champion's own trees
+    pg.click(".tab[data-id=fleet]")
+    pg.click("tr.clickable[data-id='91']")
+    pg.wait_for_timeout(600)
+    pg.evaluate("document.querySelector('.sim-slider').value = 0; document.querySelector('.sim-slider').dispatchEvent(new Event('input', {bubbles: true}))")
+    pg.evaluate("document.querySelector('#simCheck').scrollIntoView({block: 'end'})")
+    pg.wait_for_timeout(600)
+    pg.screenshot(path=f"{out}/whatif.png")
+    print("shot whatif", pg.evaluate("[...document.querySelectorAll('.whatif, .sim-rows, .sim-out, #simCheck')].map(e => [e.className || e.id, ...Object.values(e.getBoundingClientRect().toJSON()).slice(0, 4).map(Math.round)])"))
+
     pg.click(".tab[data-id=deploy]")
     pg.evaluate("window.scrollTo(0, 0)")
     pg.wait_for_timeout(600)

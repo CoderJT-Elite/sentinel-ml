@@ -116,14 +116,17 @@ with sync_playwright() as p:
         pg.wait_for_timeout(1500)
         glide(pg, "tr.clickable[data-id='76']")
         pg.wait_for_timeout(2500)
-        pg.mouse.wheel(0, 380)
-        pg.wait_for_timeout(1200)
+        # a borderline engine, where moving one driver back to its baseline visibly changes the call
+        glide(pg, "tr.clickable[data-id='91']")
+        pg.wait_for_timeout(1500)
+        pg.evaluate("document.querySelector('.sim-out').scrollIntoView({block: 'end', behavior: 'smooth'})")   # the page, not the list
+        pg.wait_for_timeout(1400)
         box = pg.locator(".sim-slider").first.bounding_box()
         pg.mouse.move(box["x"] + box["width"] * 0.8, box["y"] + box["height"] / 2, steps=25)
-        for v in [1.5, 1.0, 0.5, 0.0, -0.5]:
+        for v in [1.4, 1.0, 0.6, 0.2, 0.0]:
             pg.locator(".sim-slider").first.evaluate("(e, v) => { e.value = v; e.dispatchEvent(new Event('input', {bubbles: true})); }", v)
-            pg.wait_for_timeout(700)
-        pg.wait_for_timeout(1500)
+            pg.wait_for_timeout(800)
+        pg.wait_for_timeout(2200)
         finish(ctx, pg, "explain")
 
     if "deploy" in wanted and run_id:
