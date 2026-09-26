@@ -131,10 +131,24 @@ Dockerfile   requirements.txt   README.md
 
 The service exposes `GET /health`, `GET /metadata` and `POST /predict`, which takes raw sensor rows and returns risk, alert level, confidence and the ranked drivers. `features.py` and `explainer.py` are copied verbatim from training, so training and serving can't disagree about how a feature is computed.
 
-Two automated checks cover this. The first runs on every pipeline run and the second runs on demand:
+### 8.1 What-if scoring in the browser
+
+The Fleet tab has a what-if panel that re-scores the real champion in your browser. `sentinel/whatif.py` flattens the champion's trees into plain arrays (split feature, threshold, children, the branch a missing value takes, leaf value), and the run record carries them next to the exact feature row of every fleet reading. `web/whatif.js` walks those arrays the way the libraries do: float32 and `<` for XGBoost, double and `<=` for LightGBM. It adds up the leaf values and applies the sigmoid.
+
+When you drag a driver's slider, that one feature changes and the other features stay as observed. So it's a counterfactual on a single feature of one reading, not a forecast of what the machine will do.
+
+Three checks back it up:
+
+- A unit test builds small XGBoost and LightGBM models and requires the flat arrays to reproduce `predict_proba` to within 1e-5.
+- Another test requires the exported trees to reproduce the recorded risk of every fleet reading in a full pipeline run.
+- The panel checks itself. It scores the unmodified reading in your browser and prints the difference from the risk Python recorded. On both recorded runs the largest difference is 0.0000007.
+
+In Node, scoring one reading takes about 0.01 ms for the C-MAPSS model. When the champion isn't XGBoost or LightGBM, or the run is a regression, the panel falls back to a labeled linear sketch built from the Tree-SHAP contributions. The sketch says on its face that it doesn't call the model.
+
+Two automated checks cover deployment. The first runs on every pipeline run and the second runs on demand:
 
 1. **Parity test.** The generated service is imported the way the container would import it, and its scores are compared with the trained model's (`SERVING_PARITY`, maximum difference 0.0).
-2. **Container smoke test.** It builds the image, starts it, calls `/health` and `/predict`, and compares the scores. It needs the Docker socket, which `docker compose` mounts by default.
+2. **Container smoke test.** It builds the image, starts it, calls `/health` and `/predict`, and compares the scores. It needs the Docker socket, which is disabled by default for secure isolation and can be enabled by setting `DOCKER_SOCK=/var/run/docker.sock`.
 
 Models are logged to MLflow with their parameters, metrics, decision log, scorecard, leaderboard and feature spec, then registered as `sentinel-<dataset>` with the alias `champion`.
 
@@ -164,8 +178,10 @@ The UI's drift scenario adds a calibration offset (a number of training standard
 
 Sentinel is a prototype, and nobody has assessed it against IEC 62443 or any other security standard. A few choices do make it easier to run on an isolated plant network:
 
+- **Unprivileged containers.** The app and MLflow containers run as a normal user (UID 1000), not as root.
+- **The Docker socket is off by default.** Only the Deploy tab's container smoke test needs it. `docker-compose.smoke.yml` turns it on and runs the app as root for that purpose, which gives the app control of your Docker daemon. Use it only when you want that test. Without it the Deploy step still writes the service and runs the parity test.
+- **CORS and batch limits.** The API accepts cross-origin calls only from localhost and the hosted demo's origin, and `/predict` rejects batches over 10,000 rows.
 - **No external calls at run time.** Fonts, stylesheets and scripts are bundled locally (`web/fonts/`, IBM Plex under the SIL OFL), so the web app never requests anything from Google Fonts or a CDN. Once the images and data are pulled, it runs without Internet access.
-- **The Docker socket is optional.** The container smoke test needs `/var/run/docker.sock`. Set `DOCKER_SOCK=/dev/null` to leave it out; the Deploy step then reports that Docker is unavailable, skips the smoke test and still writes the service package.
 - **Bounded file access.** Dataset and run paths are resolved and must stay inside the uploads, samples or runs folder, which blocks directory traversal.
 - **Upload limits.** Uploads are capped at 50 MB, limited to `.csv` and `.txt`, and rejected if the file doesn't parse as CSV.
 
@@ -175,10 +191,24 @@ Sentinel is a prototype, and nobody has assessed it against IEC 62443 or any oth
 python scripts/fetch_data.py          # NASA C-MAPSS FD001 and UCI AI4I 2020 into ./data
 docker compose up --build             # app :8000, MLflow :5000, PostgreSQL
 python -m sentinel.cli run cmapss_fd001 --budget fast     # or run headless
-pytest -q                             # 19 tests on synthetic data
+python -m sentinel.cli verify docs/demo/data/run.json     # recompute a run's hash from its record
+pytest -q                             # 24 tests on synthetic data
 ```
 
-The tests cover structure detection, the steward checks and the failing gate, the leakage guard, the closed-form horizon rule, feature ordering and window correctness against pandas, PSI behavior, end-to-end determinism, champion selection, serving parity, SHAP parity, the registry and the regression path. One more is a static import audit that fails if any language-model client appears in the package.
+The tests cover structure detection, the steward checks and the failing gate, the leakage guard, the closed-form horizon rule, feature ordering and window correctness against pandas, PSI behavior, end-to-end determinism, champion selection, serving parity, SHAP parity, the what-if trees, the registry and the regression path. One more is a static import audit that fails if any language-model client appears in the package.
+
+### 11.1 Two datasets
+
+The hosted demo carries a recorded run for each dataset, and the switch on the Data tab loads either one.
+
+1. **NASA C-MAPSS FD001 turbofan engines.** 100 run-to-failure engines and 86 engineered features. The XGBoost champion scores 0.9930 cross-validated ROC-AUC and 0.9934 on the held-out test engines. Run hash `f206c5c62729d1464cce14aa15775ea3e5593d5ec7529184c1411ce9ffc01c2c`.
+2. **UCI AI4I 2020 milling machine.** 10,000 rows, 8,000 used for training, with about 3.4% failures. Sentinel switches the ranking metric to average precision on its own because the failures are rare, and the Data Steward drops the identifier columns and the four failure-mode flags that leak the target. The LightGBM champion scores 0.8163 cross-validated average precision (spread 0.0627). On the 2,000 held-out rows it reaches ROC-AUC 0.9753, average precision 0.7887 and F1 0.7719. Run hash `619a8a6c0147ffcfa9bca83e255d35255678aa1e95e47afe9e9d55186597aaf5`.
+
+The AI4I fleet list shows the 60 highest-risk rows of the holdout, not every row.
+
+### 11.2 What a threshold costs
+
+The Fleet tab has a small cost calculator. You enter what a missed failure and a false alarm cost at your plant. On a run where every engine has one final reading and a known outcome (C-MAPSS), it counts the misses and false alarms of Sentinel's threshold, of the cheapest threshold on that fleet, and of alerting on nothing or on everything. It also prints the break-even risk for a perfectly calibrated score, which is the false-alarm cost divided by both costs added. The costs are your inputs. The calculator doesn't estimate savings, and the default numbers ($100,000 and $1,000) are placeholders, not findings. Sentinel's own threshold is picked for F1, not for cost.
 
 ## 12. Scalability and feasibility
 

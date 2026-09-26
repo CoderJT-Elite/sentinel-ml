@@ -105,7 +105,7 @@ def load_ai4i() -> Dataset:
         name="UCI AI4I 2020 milling machine failures",
         description=(
             "10,000 rows of milling-machine process data with a rare (3.4%) machine-failure label. "
-            "Contains identifier columns and five failure-mode flags that leak the target; "
+            "Contains identifier columns and failure-mode flags that leak the target; "
             "the Data Steward has to catch both."
         ),
         train=train.reset_index(drop=True),

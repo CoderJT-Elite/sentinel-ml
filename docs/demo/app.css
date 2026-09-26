@@ -2,10 +2,11 @@
   --paper: #eceeef;
   --panel: #fbfbfa;
   --ink: #101418;
-  --steel: #5b6670;
-  --rule: #cdd3d8;
-  --rule-soft: #e1e5e8;
+  --steel: #505c66;
+  --rule: #788590;
+  --rule-soft: #d3d8dc;
   --red: #d8001b;
+
   --red-soft: #fbe3e6;
   --teal: #08635f;
   --teal-soft: #dcefee;
@@ -95,6 +96,9 @@ pre.code { padding: 12px 14px; overflow: auto; white-space: pre; }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 select, input[type=text], input[type=file] { font: inherit; padding: 8px 10px; border: 1px solid var(--ink); background: #fff; }
 input[type=range] { accent-color: var(--red); width: 220px; }
+input[type=range].sim-slider { min-height: 28px; cursor: pointer; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; margin-bottom: 8px; }
+
 
 /* dataset cards */
 .ds { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
@@ -145,3 +149,21 @@ svg text { font-family: var(--mono); font-size: 10px; fill: var(--steel); }
   .split { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* fleet: what-if and cost cards */
+.whatif, .econ { margin-top: 16px; background: var(--paper); border: 1px solid var(--rule); padding: 14px; }
+.whatif { border-color: var(--ink); }
+.whatif h3, .econ h3 { font-size: 14px; margin: 0; letter-spacing: .02em; }
+.whatif .sub, .econ .sub { margin: 2px 0 0; font-size: 12px; }
+.whatif-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+.whatif-head .btn { font-size: 11px; padding: 3px 8px; }
+.sim-rows { margin-top: 12px; display: grid; gap: 8px; }
+.sim-row { display: grid; grid-template-columns: minmax(140px, 1.4fr) 1.5fr minmax(96px, 1fr); gap: 8px; align-items: center; font-size: 12px; }
+.sim-row input[type=range] { width: 100%; min-height: 28px; cursor: pointer; }
+.sim-out { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--rule); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--steel); }
+.sim-out b { font-size: 15px; color: var(--ink); }
+.econ-inputs { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.econ-inputs label { font: 500 11px var(--mono); color: var(--steel); display: grid; gap: 4px; }
+.econ-inputs input { font: inherit; padding: 6px 8px; border: 1px solid var(--ink); background: #fff; width: 100%; }
+.econ-table { margin-top: 10px; }
+.econ-table td:first-child { white-space: normal; }

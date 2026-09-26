@@ -130,6 +130,39 @@ def test_shap_parity(two_runs):
         assert p["max_abs_diff"] < 1e-4
 
 
+def test_whatif_payload_reproduces_the_fleet_risks(two_runs):
+    """What the browser would score from the exported trees equals the risk the pipeline recorded."""
+    from sentinel import whatif
+    from sentinel.util import clean
+    r = two_runs[0]
+    wi = clean(r["whatif"])
+    if wi is None:
+        pytest.skip("champion is not a boosted-tree model")
+    for e in r["fleet"]:
+        x = np.array([np.nan if v is None else v for v in clean(e["x"])])
+        risk = whatif.sigmoid(wi["base"] + whatif.score_margin(wi["kind"], wi["trees"], x))
+        assert abs(risk - e["risk"]) < 1e-5
+
+
+def test_clean_keeps_raw_values_unrounded():
+    from sentinel.util import Raw, clean
+    assert clean({"a": 0.123456789, "x": Raw([0.000012345678])}) == {"a": 0.123457, "x": [0.000012345678]}
+
+
+def test_verify_accepts_a_run_and_catches_an_edit(two_runs, tmp_path):
+    import json
+    from sentinel import cli
+    from sentinel.util import clean
+    rec = clean(two_runs[0])
+    good = tmp_path / "run.json"
+    good.write_text(json.dumps(rec))
+    assert cli.verify_run(str(good)) == 0
+    rec["leaderboard"][0]["cv_mean"] = round(rec["leaderboard"][0]["cv_mean"] + 0.01, 6)
+    bad = tmp_path / "edited.json"
+    bad.write_text(json.dumps(rec))
+    assert cli.verify_run(str(bad)) == 1
+
+
 def test_registry_and_zero_llm_calls(two_runs):
     r = two_runs[0]
     assert r["registry"]["version"] >= 1 and r["llm_calls"] == 0
@@ -157,6 +190,32 @@ def test_gate_halts_the_pipeline(isolated_runs):
                       meta={"target_col": "fail", "sensor_labels": {}, "entity_noun": "Asset", "time_noun": "row"})
     r = run_pipeline(ds, {"budget": "test"})
     assert r.get("halted") and not r["scorecard"]["passed"]
+
+
+def test_whatif_trees_reproduce_the_library_scores():
+    """The flat tree arrays the browser scores must give the same probabilities as XGBoost and LightGBM."""
+    import lightgbm as lgb
+    import xgboost as xgb
+    from sentinel import whatif
+    rng = np.random.RandomState(7)
+    X = pd.DataFrame(rng.normal(size=(600, 6)), columns=list("abcdef"))
+    y = ((X["a"] + 0.5 * X["b"] ** 2 + rng.normal(scale=0.3, size=600)) > 0.6).astype(int)
+    ref = {"mean": {c: 0.0 for c in X}, "std": {c: 1.0 for c in X}}
+    for family, model, proba in (
+        ("xgboost", xgb.XGBClassifier(n_estimators=40, max_depth=3, random_state=1).fit(X, y), lambda m, d: m.predict_proba(d)[:, 1]),
+        ("lightgbm", lgb.LGBMClassifier(n_estimators=40, num_leaves=7, random_state=1, verbose=-1).fit(X, y), lambda m, d: m.predict_proba(d)[:, 1]),
+    ):
+        payload = whatif.export(family, model, X, ref, "classification")
+        assert payload is not None and len(payload["trees"]) == 40
+        got = np.array([whatif.sigmoid(payload["base"] + whatif.score_margin(family, payload["trees"], r)) for r in X.to_numpy()])
+        assert np.max(np.abs(got - proba(model, X))) < 1e-5, family
+
+
+def test_whatif_declines_unsupported_models():
+    from sentinel import whatif
+    X = pd.DataFrame({"a": [0.0, 1.0]})
+    assert whatif.export("linear", object(), X, {"mean": {}, "std": {}}, "classification") is None
+    assert whatif.export("xgboost", object(), X, {"mean": {}, "std": {}}, "regression") is None
 
 
 # ---------------------------------------------------------------- no language model in the decision path

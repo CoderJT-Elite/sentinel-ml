@@ -36,12 +36,13 @@
 
   <main class="work">
     <div class="tabs" id="tabs" role="tablist"></div>
-    <section id="view" class="view" aria-live="polite"></section>
+    <section id="view" class="view"></section>
   </main>
 
   <aside class="ledger" aria-label="Decision ledger">
     <div class="ledger-head"><h2>Decision ledger</h2><span id="ledgerCount">0 entries</span></div>
-    <div class="tape" id="tape"><p class="empty">Every rule the pipeline applies is written here as it fires. Start a run to see it.</p></div>
+    <div class="tape" id="tape" role="log" aria-live="polite" aria-relevant="additions"><p class="empty">Every rule the pipeline applies is written here as it fires. Start a run to see it.</p></div>
+
   </aside>
 </div>
 <script src="app.js" type="module"></script>

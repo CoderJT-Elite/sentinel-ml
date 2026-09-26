@@ -3,6 +3,9 @@
     python scripts/export_static.py run-abc123          # export an existing run in ./runs
     python scripts/export_static.py --fresh             # run the pipeline first, then export
 
+The demo carries two recorded runs: C-MAPSS (with the drift grid and deploy check) and AI4I 2020
+(run and event log only). Both are real pipeline runs with their real event streams.
+
 Everything in the exported JSON is produced by the real pipeline, monitor and retrainer:
 the page just replays it. Drift scenarios are precomputed on a grid because the browser
 cannot recompute rolling features and PSI on the server-side model.
@@ -30,6 +33,7 @@ def main():
     ap.add_argument("--fresh", action="store_true")
     ap.add_argument("--out", default=str(ROOT / "docs" / "demo"))
     ap.add_argument("--no-docker", action="store_true")
+    ap.add_argument("--no-ai4i", action="store_true", help="skip the second dataset's run")
     a = ap.parse_args()
 
     events = []
@@ -44,9 +48,10 @@ def main():
     events = json.loads((run_dir / "events.json").read_text())
 
     out = pathlib.Path(a.out)
-    if out.exists():
-        shutil.rmtree(out)
-    shutil.copytree(ROOT / "web", out)
+    if out.exists():                       # clear the contents, not the folder: it may be a mount point
+        for child in out.iterdir():
+            shutil.rmtree(child) if child.is_dir() else child.unlink()
+    shutil.copytree(ROOT / "web", out, dirs_exist_ok=True)
     (out / "data").mkdir()
     (out / "data" / "run.json").write_text(json.dumps(summary, separators=(",", ":")))
     (out / "data" / "events.json").write_text(json.dumps(events, separators=(",", ":")))
@@ -69,6 +74,14 @@ def main():
     if not a.no_docker:
         dep["docker"] = deployer.docker_smoke(summary["serving"]["folder"], "sentinel-model:export", ctx["sample"]["rows"], ctx["sample"]["expected"])
     (out / "data" / "deploy.json").write_text(json.dumps(clean(dep)))
+    if not a.no_ai4i:
+        events2 = []
+        res2 = run_pipeline(data.load("ai4i"), {"budget": "fast"}, events2.append)
+        (out / "data" / "run_ai4i.json").write_text((pathlib.Path(config.RUNS_DIR) / res2["run_id"] / "summary.json").read_text())
+        (out / "data" / "events_ai4i.json").write_text(json.dumps(clean(events2), separators=(",", ":")))
+        print("ai4i run", res2["run_id"], res2["run_hash"][:12])
+    index = out / "index.html"
+    index.write_text(index.read_text(encoding="utf-8").replace("<head>", '<head>\n<meta name="sentinel-static" content="1">', 1), encoding="utf-8")
     (out / ".nojekyll").write_text("")
     print("exported", run_id, "->", out)
 
