@@ -13,5 +13,5 @@
   </g>
   <!-- Wordmark & Subtitle -->
   <text x="80" y="35" font-family="'IBM Plex Sans', -apple-system, sans-serif" font-size="26" font-weight="700" fill="#101418" letter-spacing="1.5">SENTINEL</text>
-  <text x="81" y="52" font-family="'IBM Plex Mono', monospace" font-size="9.5" font-weight="500" fill="#5B6670" letter-spacing="2.2">DETERMINISTIC MLCOPILOT</text>
+  <text x="81" y="52" font-family="'IBM Plex Mono', monospace" font-size="9.5" font-weight="500" fill="#5B6670" letter-spacing="2.2">DETERMINISTIC AUTOML</text>
 </svg>

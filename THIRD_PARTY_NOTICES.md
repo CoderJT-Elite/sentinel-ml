@@ -1,49 +1,36 @@
-# Third-Party Notices & Licenses
+# Third-party notices
 
-Sentinel incorporates open-source software, publicly accessible benchmarks, and open typography. This document details the respective licenses and citations.
+Sentinel builds on open-source software, public datasets and an open typeface. This file lists what each one is and under which license.
 
----
+## Datasets
 
-## 1. Primary Datasets
+**NASA C-MAPSS (FD001).** Turbofan engine degradation simulation from the NASA Prognostics Center of Excellence, Ames Research Center. Terms: public domain under NASA's open data policy.
+Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). *Damage propagation modeling for aircraft engine run-to-failure simulation.* In Proceedings of the 1st International Conference on Prognostics and Health Management (PHM08), Denver, CO.
 
-### A. NASA C-MAPSS (Commercial Modular Aero-Propulsion System Simulation)
-- **Source**: NASA Prognostics Center of Excellence (PCoE), Ames Research Center.
-- **Dataset**: Turbofan Engine Degradation Simulation (FD001).
-- **Citation**: Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). *Damage propagation modeling for aircraft engine run-to-failure simulation.* In Proceedings of the 1st International Conference on Prognostics and Health Management (PHM08), Denver, CO.
-- **License / Terms**: Public Domain / NASA Open Data Policy.
+**UCI AI4I 2020 Predictive Maintenance Dataset** (UCI Machine Learning Repository, dataset #601). License: CC BY 4.0.
+Matzka, S. (2020). *Explainable Artificial Intelligence for Predictive Maintenance Applications.* In Third International Conference on Artificial Intelligence for Industries (AI4I 2020), pp. 69-74. IEEE.
 
-### B. UCI AI4I 2020 Predictive Maintenance Dataset
-- **Source**: UCI Machine Learning Repository (Dataset #601).
-- **Citation**: Matzka, S. (2020). *Explainable Artificial Intelligence for Predictive Maintenance Applications.* In Third International Conference on Artificial Intelligence for Industries (AI4I 2020), pp. 69-74. IEEE.
-- **License**: Creative Commons Attribution 4.0 International (CC BY 4.0).
+## Typography
 
----
+**IBM Plex Sans, IBM Plex Sans Condensed and IBM Plex Mono.** Copyright (c) 2017 IBM Corp., with Reserved Font Name "Plex". License: SIL Open Font License 1.1. The font files are bundled in `web/fonts/` so the app makes no request to a font CDN. The license text is in `web/fonts/OFL.txt`.
 
-## 2. Typography
+## Software libraries
 
-### IBM Plex Sans, IBM Plex Sans Condensed, IBM Plex Mono
-- **Author**: IBM Corp.
-- **License**: SIL Open Font License, Version 1.1 (OFL-1.1).
-- **Copyright**: Copyright (c) 2017 IBM Corp. with Reserved Font Name "Plex".
-- **Bundled Location**: `web/fonts/` (Self-hosted for offline air-gapped industrial deployment).
-
----
-
-## 3. Core Software Libraries
-
-| Library | License | Usage |
+| Library | License | What Sentinel uses it for |
 |:---|:---:|:---|
-| **Python** | PSF License | Runtime environment |
-| **XGBoost** | Apache 2.0 | Gradient boosting decision trees |
-| **LightGBM** | MIT License | High-efficiency gradient boosting |
-| **scikit-learn** | BSD-3-Clause | Preprocessing, metrics, Random Forest, linear baselines |
-| **SHAP** | MIT License | Tree-SHAP explainer verification |
-| **Optuna** | MIT License | Deterministic Bayesian hyperparameter optimization |
-| **MLflow** | Apache 2.0 | Model registry, experiment tracking, artifact storage |
-| **FastAPI** | MIT License | REST API & microservice serving runtime |
-| **Uvicorn** | BSD-3-Clause | ASGI web server |
-| **Pydantic** | MIT License | Data validation and schema enforcement |
-| **SQLAlchemy** | MIT License | ORM & database abstraction |
-| **psycopg2-binary** | LGPL-3.0 with OpenSSL exception | PostgreSQL database adapter |
-| **Pandas / NumPy / SciPy** | BSD-3-Clause | Tabular data manipulation & numerical computations |
-| **Pytest** | MIT License | Automated testing suite |
+| Python | PSF | runtime |
+| XGBoost | Apache 2.0 | gradient-boosted trees |
+| LightGBM | MIT | gradient-boosted trees |
+| scikit-learn | BSD-3-Clause | preprocessing, metrics, Random Forest, linear baseline |
+| SHAP | MIT | checking the native Tree-SHAP output |
+| Optuna | MIT | seeded hyperparameter search |
+| MLflow | Apache 2.0 | tracking and the model registry |
+| FastAPI | MIT | the REST API and the generated model service |
+| Uvicorn | BSD-3-Clause | ASGI server |
+| Pydantic | MIT | request validation |
+| SQLAlchemy | MIT | database access |
+| psycopg2-binary | LGPL-3.0 with OpenSSL exception | PostgreSQL driver |
+| pandas, NumPy, SciPy | BSD-3-Clause | data handling and statistics |
+| pytest | MIT | tests |
+
+Sentinel itself is released under the MIT License (see `LICENSE`).

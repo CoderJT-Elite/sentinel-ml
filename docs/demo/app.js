@@ -215,9 +215,9 @@ function viewData(v) {
       <div class="ds">${cards}</div>${controls}</div>${upload}
     ${S.mode === "live" && S.pastRuns?.length ? `<div class="card"><h3>Earlier runs</h3><p class="sub">Open a finished run with its ledger. Runs with the same hash are reproductions of each other.</p>
       <div class="row">${S.pastRuns.map((r) => `<button class="btn ghost open" data-id="${esc(r.id)}">${esc(r.dataset)} &middot; ${esc(r.run_hash.slice(0, 8))}</button>`).join("")}</div></div>` : ""}
-    <div class="card"><h3>What makes this different</h3><div class="grid2">
-      <div><b class="mono">No model in the decision path</b><p class="sub">Profiling, task framing, model choice, feature engineering, explanation and drift response are closed-form rules, statistical tests and cross-validated metrics. Machine learning is used where it is the right tool: the failure-prediction models themselves.</p></div>
-      <div><b class="mono">Auditable by construction</b><p class="sub">Every decision names the rule, the numbers it read and the threshold it compared against. The whole run reduces to one hash that anyone can reproduce.</p></div></div></div>`;
+    <div class="card"><h3>How it differs from a chatbot pipeline</h3><div class="grid2">
+      <div><b class="mono">No model in the decision path</b><p class="sub">Profiling, task framing, model choice, feature engineering, explanation and drift response all run on fixed rules, statistical tests and cross-validated scores. Machine learning does one job here, which is predicting failures.</p></div>
+      <div><b class="mono">Every decision is on the record</b><p class="sub">Every decision names the rule, the numbers it read and the threshold it compared against. The whole run reduces to one hash that anyone can reproduce.</p></div></div></div>`;
   v.querySelectorAll(".dsc").forEach((b) => (b.onclick = () => { S.selected = b.dataset.key; render(); }));
   $("#budget", v) && ($("#budget", v).onchange = (e) => (S.budget = e.target.value));
   $("#run", v) && ($("#run", v).onclick = startRun);
@@ -337,7 +337,7 @@ function viewBoard(v) {
       ${cls ? `<div class="kpi"><label>Holdout F1</label><b>${fmt(champ.holdout?.all_rows?.f1, 3)}</b><small>at the out-of-fold alert threshold</small></div>` : ""}
     </div>
     <div class="card"><h3>Cross-validated leaderboard</h3>
-      <p class="sub">Ranked by cross-validated ${esc(mName)} (${hi ? "higher" : "lower"} is better). Folds are grouped so no ${esc((S.result?.entity_noun || "unit").toLowerCase())} appears in both training and validation. The holdout is scored for every model but never used to choose between them: the numbers pick the winner.</p>
+      <p class="sub">Ranked by cross-validated ${esc(mName)} (${hi ? "higher" : "lower"} is better). Folds are grouped so no ${esc((S.result?.entity_noun || "unit").toLowerCase())} appears in both training and validation. The holdout is scored for every model but never used to choose between them; the cross-validated numbers pick the winner.</p>
       <table><thead><tr><th>#</th><th>Model</th><th>CV ${esc(mName)}</th><th>Folds</th><th>Holdout (all rows)</th><th>Holdout (last obs.)</th><th>Trials</th><th>Time</th></tr></thead><tbody>
       ${rows.map((r) => {
         const w = 15 + 85 * (mx === lo ? 1 : hi ? (r.cv_mean - lo) / (mx - lo) : (mx - r.cv_mean) / (mx - lo));
@@ -350,7 +350,7 @@ function viewBoard(v) {
           <td class="num">${fmt(fo[finKey], 4)} <span style="color:var(--steel)">n=${fo.n ?? "-"}</span></td>
           <td class="num">${r.n_trials}</td><td class="num">${r.fit_seconds}s</td></tr>`;
       }).join("")}</tbody></table>
-      <p class="sub" style="margin-top:10px">Bars span the observed range of the four models, so small gaps look large. Read the numbers: on this data the gradient-boosted models are separated from the linear baseline by only a few thousandths, which is itself a finding.</p></div>
+      <p class="sub" style="margin-top:10px">Bars span the observed range of the four models, so small gaps look large. Read the numbers. On this data the gradient-boosted models beat the linear baseline by only a few thousandths.</p></div>
     ${S.result?.explain?.parity?.checked ? `<div class="note">Native Tree-SHAP used by the service equals <code>shap.TreeExplainer</code> to within <b>${S.result.explain.parity.max_abs_diff.toExponential(1)}</b> on ${S.result.explain.parity.rows} rows.</div>` : ""}`;
 }
 
@@ -365,13 +365,13 @@ function viewExplain(v) {
   const rel = S.result?.explain?.reliability || [];
   const sMax = g.sensors[0].share, fMax = g.features[0].share;
   const relBars = rel.length ? `<div class="card"><h3>How much to trust a score</h3>
-    <p class="sub">For each score band, the share of out-of-fold examples that really did fail within the alarm horizon. This is the "confidence" attached to every alert: a measured hit rate, not a self-reported probability.</p>
+    <p class="sub">For each score band, the share of out-of-fold examples that really did fail within the alarm horizon. This is the "confidence" attached to every alert: a measured hit rate instead of the model's own probability.</p>
     ${relChart(rel)}</div>` : "";
   v.innerHTML = `<div class="grid2">
     <div class="card"><h3>Which sensors drive risk</h3><p class="sub">Mean absolute Tree-SHAP contribution, summed over each sensor's engineered features, as a share of the total.</p>${hbars(g.sensors.slice(0, 9), "share", "label", sMax)}</div>
     <div class="card"><h3>Top engineered features</h3><p class="sub">The single features the champion leans on most across the training data.</p>${hbars(g.features.slice(0, 9), "share", "label", fMax, "#5b6670")}</div></div>
     ${relBars}
-    <div class="note">Explanations are computed, not written. A sentence such as <i>"Ps30 static pressure well above baseline (+2.4 sd), 19% of the signal"</i> is a template filled with a SHAP value and a z-score. Open the Fleet tab to read one per engine.</div>`;
+    <div class="note">Every explanation is a template filled with numbers. A sentence such as <i>"Ps30 static pressure well above baseline (+2.4 sd), 19% of the signal"</i> is built from a SHAP value and a z-score. Open the Fleet tab to read one per engine.</div>`;
 }
 function relChart(rel) {
   const W = 560, H = 190, pad = 34, bw = (W - pad) / rel.length;

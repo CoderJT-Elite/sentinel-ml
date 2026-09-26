@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-message: "If you use Sentinel in academic research or industrial benchmarking, please cite it as below."
+message: "If you use Sentinel in your work, please cite it as below."
 authors:
   - family-names: "Tewolde"
     given-names: "John"
-title: "Sentinel: A Deterministic AutoML and MLOps Copilot for Industrial Predictive Maintenance"
+title: "Sentinel: deterministic AutoML and MLOps for predictive maintenance"
 version: 0.1.0
 date-released: 2026-09-25
 url: "https://github.com/CoderJT-Elite/sentinel-ml"
@@ -14,6 +14,4 @@ keywords:
   - "MLOps"
   - "Tree-SHAP"
   - "condition monitoring"
-  - "ISO 13374"
-  - "industrial AI"
   - "determinism"

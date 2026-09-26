@@ -1,170 +1,128 @@
 <div align="center">
 
-![Sentinel Hero Banner](docs/assets/hero-banner.png)
+![Sentinel hero banner](docs/assets/hero-banner.png)
 
 # SENTINEL
-### Deterministic AutoML + MLOps Copilot for Industrial Predictive Maintenance
+### Deterministic AutoML and MLOps for predictive maintenance
 
-[![Determinism](https://img.shields.io/badge/run__hash-f206c5c62729...-d8001b?style=flat-square&logo=git)](docs/demo/)
-[![LLM Calls](https://img.shields.io/badge/LLM__Calls-0_(AST_Audited)-101418?style=flat-square)](tests/test_pipeline.py)
-[![Tests](https://img.shields.io/badge/tests-19_passed-08635f?style=flat-square)](tests/)
+[![Run hash](https://img.shields.io/badge/run__hash-f206c5c62729...-d8001b?style=flat-square)](docs/TECHNICAL_DOCUMENTATION.md#4-reproducibility)
+[![LLM calls](https://img.shields.io/badge/LLM__calls-0_(import--audited)-101418?style=flat-square)](tests/test_pipeline.py)
+[![Tests](https://img.shields.io/badge/tests-19_passing-08635f?style=flat-square)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5b6670?style=flat-square)](LICENSE)
 
-**Built for the ABB Accelerator 2026 (Theme 1: Agentic Predictive Maintenance Studio), Prototype Phase**  
-*Submitted by John Tewolde*
-
-[**Explore the hosted demo (recorded run)**](https://coderjt-elite.github.io/sentinel-ml/demo/) • [**Technical Documentation (PDF)**](docs/TECHNICAL_DOCUMENTATION.md) • [**Architecture and decision records**](docs/TECHNICAL_DOCUMENTATION.md#131-architecture-decision-records-adrs)
+**[Hosted demo](https://coderjt-elite.github.io/sentinel-ml/demo/)** &nbsp;|&nbsp; **[Technical documentation](docs/TECHNICAL_DOCUMENTATION.md)** &nbsp;|&nbsp; **[Run it yourself](#run-it)**
 
 </div>
 
----
+Sentinel takes raw sensor data and gives back a deployed, explained, monitored failure-prediction model. I built it for Theme 1 of the ABB Accelerator (the Prototype Phase), and I made one rule for it: no language model makes a decision anywhere in the pipeline. Every choice is a fixed rule, a statistical test or a cross-validated score, and every one of them is written to a ledger.
 
-## ⏱️ 60-Second Tour for Hackathon Judges
+## Why there's no language model in it
 
-1. **The problem**: Siemens estimates the Fortune Global 500 lose about $1.4 trillion a year to unplanned downtime (*The True Cost of Downtime 2024*). A predictive model that flags a machine but cannot say why is hard to defend in a safety review, and wrapping the workflow in a generative LLM makes it harder to reproduce.
-2. **The Sentinel Commitment**: **Zero language models in the runtime decision path.** Machine learning (XGBoost, LightGBM, Random Forest, linear baseline) fits non-linear failure dynamics. Everything around it (data profiling, task framing, model tournament ranking, feature engineering, Tree-SHAP explanations, drift monitoring) runs on deterministic mathematical rules, statistical tests, and cross-validated scores.
-3. **The Proof of Determinism**: Every threshold, decision, and metric hashes to an immutable SHA-256 digest:  
-   `f206c5c62729d1464cce14aa15775ea3e5593d5ec7529184c1411ce9ffc01c2c`. Anyone running the pipeline with the same raw data and seed reproduces the exact same bitwise hash.
-4. **Two extras in the hosted demo**: a what-if sketch (a linear estimate from a reading's top Tree-SHAP drivers, not a model re-run) and a printable run report.
-5. **Production Parity**: Generated edge microservices reproduce trained model outputs with a maximum absolute discrepancy of **0.0**.
+Most predictive maintenance tools lose people at one point. The model flags a machine and nobody can say why, so the engineer redoes the analysis by hand and the tool saved nothing. Put a generative model in charge of the workflow and it gets worse, because you can't run it twice and expect the same answer.
 
----
+So Sentinel uses machine learning for exactly one job, predicting failures, and uses plain rules for everything around it. Give it the same data and the same seed and you get the same decisions, the same leaderboard and the same SHA-256 run hash. That hash is `f206c5c62729d1464cce14aa15775ea3e5593d5ec7529184c1411ce9ffc01c2c` for the NASA C-MAPSS run below, and it reproduced every time I ran the full pipeline from scratch. A test also fails the build if any language-model client gets imported.
 
-## 🏛️ Architecture: Mapped to ISO 13374 Functional Layers
+## See it run
 
-Sentinel's 6 pipeline stations are arranged to follow the functional blocks of **ISO 13374** (*Condition monitoring and diagnostics of machine systems*). This is an organizing analogy, not a conformance claim:
+The GIFs below are screen captures of the live app running on the Docker Compose stack.
 
-```
-                     RAW PLANT TELEMETRY (CSV / Stream)
-                                     │
-    ┌────────────────────────────────▼────────────────────────────────┐
-    │  STATION 1: DATA STEWARD (ISO 13374 Layer 2: Data Manipulation)  │
-    │  Profiles data against 10 fixed statistical checks.             │
-    │  [HALT ON CORRUPT DATA] ──> Refuses missing / uncalibrated data  │
-    └────────────────────────────────┬────────────────────────────────┘
-                                     │
-    ┌────────────────────────────────▼────────────────────────────────┐
-    │  STATION 2: TASK & MODEL SELECTOR (ISO 13374 Layer 2/3)         │
-    │  Auto-detects unit/cycle structure; alarm horizon = 15% life    │
-    │  Targets: Remaining Useful Life (RUL) & classification horizon  │
-    └────────────────────────────────┬────────────────────────────────┘
-                                     │
-    ┌────────────────────────────────▼────────────────────────────────┐
-    │  STATION 3: FEATURE ENGINEER (ISO 13374 Layer 3: State Detection)│
-    │  86 temporal features: rolling mean, std, slope, and change      │
-    │  Vectorized numpy/pandas: identical code trains and serves      │
-    └────────────────────────────────┬────────────────────────────────┘
-                                     │
-    ┌────────────────────────────────▼────────────────────────────────┐
-    │  STATION 4: TRAINER TOURNAMENT (ISO 13374 Layer 4: Health Assess)│
-    │  GroupKFold(5) grouped by unit to prevent temporal data leakage │
-    │  Seeded Optuna search; ranked strictly by CV ROC-AUC             │
-    └────────────────────────────────┬────────────────────────────────┘
-                                     │
-    ┌────────────────────────────────▼────────────────────────────────┐
-    │  STATION 5: EXPLAINER (ISO 13374 Layer 5: Prognostic Assessment) │
-    │  Exact Tree-SHAP mathematical attributions & physical z-scores   │
-    │  Empirical confidence: observed historical hit rate per band    │
-    └────────────────────────────────┬────────────────────────────────┘
-                                     │
-    ┌────────────────────────────────▼────────────────────────────────┐
-    │  STATION 6: DEPLOYER & MONITOR (ISO 13374 Layer 6: Advisory Gen) │
-    │  Generates self-contained FastAPI edge container (0.0 diff)     │
-    │  Early-life window PSI drift monitor; auto-retrain tournament    │
-    └─────────────────────────────────────────────────────────────────┘
-```
+![Sentinel refusing a sensor log with 47% of its torque readings missing](docs/assets/gate.gif)
 
----
+![Sentinel detecting a shifted pressure sensor, retraining, and promoting a challenger](docs/assets/drift.gif)
 
-## 📊 Benchmark Results on NASA C-MAPSS FD001
+The [hosted demo](https://coderjt-elite.github.io/sentinel-ml/demo/) replays a recorded run of the same interface. To train on your own data, use the Docker stack below.
 
-Evaluated on NASA's 100-engine turbofan run-to-failure benchmark. Target derived automatically: *fails within 30 cycles* ($0.15 \times \text{median operating life of 199 cycles}$). The official NASA test set of 100 engines was completely held out during model selection:
+## What it does
 
-| Model Family | 5-Fold Grouped CV ROC-AUC | Holdout ROC-AUC (All Rows) | Holdout AP (Final Obs) | Status |
+Six steps run in order. Each one writes to the decision ledger.
+
+1. **Data Steward** profiles the data against fixed thresholds and halts if it can't support a trustworthy model.
+2. **Task and Model Selector** finds the machine and time columns by itself, derives the target, and picks the ranking metric.
+3. **Feature Engineer** builds rolling mean, standard deviation, slope and change features per machine (86 of them on C-MAPSS).
+4. **Trainer** runs a seeded Optuna search over four model families and ranks them by cross-validation grouped by machine, so nothing leaks between folds.
+5. **Explainer** turns Tree-SHAP contributions into a sentence with a fixed template and attaches a measured confidence.
+6. **Deployer and Monitor** registers the champion in MLflow, generates a versioned FastAPI service in Docker, and watches for drift.
+
+I arranged the steps to follow the layers of ISO 13374 condition monitoring, which helped me place each piece of logic. It's a way of organizing the code, not a claim of conformance.
+
+## Results on NASA C-MAPSS FD001
+
+Sentinel derives the target on its own: an engine "fails within 30 cycles", where 30 is 0.15 times the median engine life of 199 cycles. The official NASA test set is the holdout, and it's never used to pick a winner.
+
+| Model | 5-fold grouped CV ROC-AUC | Holdout ROC-AUC (all rows) | Holdout average precision (final observation) | |
 |:---|:---:|:---:|:---:|:---:|
 | **XGBoost** | **0.9930 ± 0.0018** | **0.9934** | **0.949** | **Champion** |
-| LightGBM | 0.9930 ± 0.0017 | 0.9932 | 0.947 | Evaluated |
-| Linear Baseline | 0.9921 ± 0.0008 | 0.9918 | 0.950 | Evaluated |
-| Random Forest | 0.9909 ± 0.0020 | 0.9924 | 0.959 | Evaluated |
+| LightGBM | 0.9930 ± 0.0017 | 0.9932 | 0.947 | |
+| Linear baseline | 0.9921 ± 0.0008 | 0.9918 | 0.950 | |
+| Random Forest | 0.9909 ± 0.0020 | 0.9924 | 0.959 | |
 
-*On the final observation of each of the 100 test engines, the champion achieves ROC-AUC 0.981, Average Precision 0.949, and F1 0.809. The linear baseline is within 0.001 CV ROC-AUC of the champion, so most of the signal in this data is simple; the leaderboard shows that rather than hiding it.*
+On the last observation of each of the 100 test engines, the champion scores ROC-AUC 0.981, average precision 0.949 and F1 0.809. The linear baseline lands within 0.001 CV ROC-AUC of the champion, so most of the signal in this data is simple; the leaderboard shows that instead of hiding it.
 
----
+An example of what an alert looks like:
 
-## 🔒 Security and offline operation
+> Engine 76 ALERT at cycle 205: failure risk >99%. Ps30 static pressure at HPC outlet, 5-cycle average above baseline (+1.9 sd), 15% of the signal. Historically 94% of scores in this band were followed by failure within the alarm horizon (n=2635).
 
-- **No external calls at run time**: fonts (IBM Plex, SIL OFL), stylesheets and scripts are bundled in `web/`, so the app makes no requests to Google Fonts or a CDN.
-- **Docker socket is optional**: the Deploy step's container smoke test needs it. Set `DOCKER_SOCK=/dev/null` to skip that test; the service package is still written.
-- **Bounded file access and uploads**: paths are resolved and kept inside their folders; uploads are capped at 50 MB, `.csv`/`.txt` only, and must parse as CSV.
-- Sentinel is a prototype and has not been assessed against IEC 62443 or any other security standard. See [SECURITY.md](SECURITY.md).
+Every part of that sentence is computed. The 94% is the out-of-fold hit rate for that score band, not a probability the model reports about itself.
 
----
+## Run it
 
-## 🚀 Quick Start
+**Hosted demo, no install.** Open [coderjt-elite.github.io/sentinel-ml/demo](https://coderjt-elite.github.io/sentinel-ml/demo/). It replays a real run, includes a what-if sketch on the Fleet tab (a linear estimate from a reading's top drivers; it doesn't re-run the model), and can print a run report.
 
-### 1. Hosted Demo (Zero Install)
-Open the replay of a real run, with the what-if sketch and a printable run report:  
-👉 **[https://coderjt-elite.github.io/sentinel-ml/demo/](https://coderjt-elite.github.io/sentinel-ml/demo/)**
-
-### 2. Full Local Docker Compose Stack
-Includes the FastAPI application, PostgreSQL persistence store, and local MLflow tracking server:
+**The full app, with PostgreSQL and an MLflow server.**
 
 ```bash
 git clone https://github.com/CoderJT-Elite/sentinel-ml.git
 cd sentinel-ml
-python scripts/fetch_data.py        # Downloads public NASA C-MAPSS and UCI AI4I
+python scripts/fetch_data.py        # downloads NASA C-MAPSS and UCI AI4I into ./data
 docker compose up --build
 ```
-Open **[http://localhost:8000](http://localhost:8000)** in your browser.
 
-### 3. Local Python Execution & Testing
+Then open [http://localhost:8000](http://localhost:8000), pick a dataset and press Run. A full C-MAPSS run takes about two and a half minutes.
+
+**Just the pipeline and the tests.**
+
 ```bash
 pip install -r requirements.txt
 python scripts/fetch_data.py
 python -m sentinel.cli run cmapss_fd001 --budget fast
-pytest -q                           # 19 automated tests (100% pass)
+pytest -q                           # 19 tests, about two minutes
 ```
 
----
+The hash depends on library versions, so `requirements.txt` pins exact ones and the Docker image installs from it. If you run outside Docker, expect the same decisions but possibly a different hash.
 
-## 📁 Repository Structure
+## What's real and what isn't
+
+- The hosted demo is a recorded run of the real pipeline. Live training, uploads and container builds need the Docker stack.
+- The drift scenario shifts one sensor by a chosen number of standard deviations, and that shift is simulated. The detection, retraining and promotion that follow are real.
+- C-MAPSS FD001 is simulated data with one operating condition. I haven't run Sentinel on a real plant.
+- Survival analysis for censored data isn't built yet.
+- Sentinel hasn't been assessed against IEC 62443 or any other security standard. [SECURITY.md](SECURITY.md) lists what I did do: bundled fonts so the app makes no external calls, bounded file paths and uploads, and an optional Docker socket.
+
+## Repository layout
 
 ```
-sentinel-ml/
-├── api/                  # FastAPI REST API & Server-Sent Events (SSE) streaming
-├── docs/                 # Technical documentation, PDF manual, and static hosted demo
-│   ├── demo/             # Complete static recorded run for GitHub Pages
-│   └── TECHNICAL_DOCUMENTATION.md
-├── runs/                 # Versioned model artifacts, logs, and serving packages
-├── samples/              # Bundled failure-mode datasets (e.g. broken_sensor_log.csv)
-├── scripts/              # Dataset fetchers, static exporters, and PDF report builders
-├── sentinel/             # Core deterministic pipeline stations
-│   ├── steward.py        # Station 1: Data profiling & quality gate
-│   ├── selector.py       # Station 2: Task framing & alarm horizon calculation
-│   ├── features.py       # Station 3: Vectorized sliding window transforms
-│   ├── trainer.py        # Station 4: Seeded Optuna search & GroupKFold cross-validation
-│   ├── explainer.py      # Station 5: Native Tree-SHAP mathematical attributions
-│   ├── deployer.py       # Station 6: Standalone edge service compiler & parity testing
-│   ├── monitor.py        # Continuous Population Stability Index (PSI) drift engine
-│   └── graph.py          # Deterministic LangGraph state machine & Run Hash engine
-├── tests/                # 19 automated test suites (determinism, parity, AST import audit)
-├── web/                  # Vanilla JS/CSS single-page UI (self-hosted offline fonts)
-├── docker-compose.yml    # App + PostgreSQL + MLflow service orchestration
-├── Dockerfile            # Container definition
-└── requirements.txt      # Pinned production dependency specifications
+api/                  FastAPI app: REST, server-sent events, uploads
+sentinel/             the pipeline
+  steward.py            Data Steward: profile and quality gate
+  selector.py           task framing, alarm horizon, ranking metric
+  features.py           rolling-window features, shared with the serving container
+  trainer.py            seeded Optuna search, grouped cross-validation
+  explainer.py          Tree-SHAP, sentence templates, measured confidence
+  deployer.py           serving package, parity test, container smoke test
+  monitor.py            PSI and KS drift
+  lifecycle.py          retrain and champion/challenger
+  graph.py              the six nodes as a LangGraph workflow (no model calls)
+web/                  the single-page UI
+docs/                 technical documentation and the static demo
+scripts/              data fetchers, screenshots, screen recordings, static export
+tests/                19 tests: determinism, parity, import audit, gates
 ```
 
----
+## Data, citations and license
 
-## 📖 Citations & Acknowledgments
+- **NASA C-MAPSS.** Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). *Damage propagation modeling for aircraft engine run-to-failure simulation.* PHM08, Denver, CO.
+- **UCI AI4I 2020.** Matzka, S. (2020). *Explainable Artificial Intelligence for Predictive Maintenance Applications.* AI4I 2020, pp. 69-74. IEEE. CC BY 4.0.
+- **Downtime cost.** Siemens (2024). *The True Cost of Downtime 2024.* Quoted as Siemens reports it.
+- **Typography.** IBM Plex, SIL Open Font License 1.1.
 
-- **NASA C-MAPSS**: Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). *Damage propagation modeling for aircraft engine run-to-failure simulation.* PHM08, Denver, CO.
-- **UCI AI4I 2020**: Matzka, S. (2020). *Explainable Artificial Intelligence for Predictive Maintenance Applications.* AI4I 2020, pp. 69-74. IEEE. (CC BY 4.0).
-- **Downtime cost**: Siemens (2024). *The True Cost of Downtime 2024.* Figure quoted as reported by Siemens.
-- **Typography**: IBM Plex by IBM Corp. (SIL Open Font License v1.1).
-
----
-
-## ⚖️ License
-
-Sentinel is licensed under the **[MIT License](LICENSE)**. Built by **John Tewolde** for the **ABB Accelerator 2026**.
+Sentinel is released under the [MIT License](LICENSE). Third-party notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Built by John Tewolde for the ABB Accelerator.
